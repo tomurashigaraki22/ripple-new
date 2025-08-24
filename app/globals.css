@@ -3,24 +3,133 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* RippleBids Neon Colors */
+  --neon-green: #39ff14;
+  --neon-cyan: #00f6ff;
+  --neon-purple: #a020f0;
 }
 
+/* Register theme tokens with Tailwind */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  --color-neon-green: var(--neon-green);
+  --color-neon-cyan: var(--neon-cyan);
+  --color-neon-purple: var(--neon-purple);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0d0d0d;
+    --foreground: #e6e6e6;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* globals.css */
+
+/* Neon button base */
+.btn-neon {
+  background: transparent;
+  color: var(--neon-green);
+  border: 2px solid var(--neon-green);
+  padding: 0.75rem 1.5rem;
+  font-weight: bold;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  position: relative;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  @apply bg-[#39FF14] text-black font-bold rounded-full hover:shadow-[0_0_20px_#39FF14] transition-all duration-300;
+}
+
+/* Neon glow effect */
+.btn-neon:hover {
+  box-shadow: 0 0 10px var(--neon-green),
+              0 0 20px var(--neon-green),
+              0 0 40px var(--neon-green);
+  background: var(--neon-green);
+  color: #0d0d0d; /* contrast against glow */
+}
+
+/* Optional animated border glow */
+.btn-neon::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: inherit;
+  background: linear-gradient(45deg, var(--neon-green), var(--neon-cyan), var(--neon-purple), var(--neon-green));
+  background-size: 400% 400%;
+  filter: blur(8px);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.btn-neon:hover::before {
+  opacity: 1;
+  animation: neon-border 6s linear infinite;
+}
+
+@keyframes neon-border {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes neon-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px #39FF14,
+                0 0 10px #39FF14,
+                0 0 15px #39FF14;
+  }
+  50% {
+    box-shadow: 0 0 10px #39FF14,
+                0 0 20px #39FF14,
+                0 0 30px #39FF14;
+  }
+}
+
+.loading-neon {
+  animation: neon-pulse 1.5s ease-in-out infinite;
+}
+
+.feature-card {
+  @apply p-6 rounded-2xl bg-[#111111] hover:bg-[#161616] transition-all duration-300 border border-[#222222] hover:border-[#39FF14]/20;
+}
+
+/* Add smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevent content shift when scrollbar appears */
+@media screen and (min-width: 768px) {
+  html {
+    margin-left: calc(100vw - 100%);
+    margin-right: 0;
+  }
+}
+
+/* Add this after your existing styles */
+
+.glass-effect {
+  @apply bg-[#1a1a1a]/30 backdrop-blur-xl border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.2)];
+}
+
+.glass-effect-darker {
+  @apply bg-[#1a1a1a]/70 backdrop-blur-xl border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.3)];
 }

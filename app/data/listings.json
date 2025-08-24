@@ -1,0 +1,424 @@
+{
+    "listings": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "title": "Cosmic Dragon NFT #1",
+        "price_usd": 299.99,
+        "description": "Legendary cosmic dragon with ethereal flames and starlit scales",
+        "images": ["/nfts/cosmic-dragon-1.jpg", "/nfts/cosmic-dragon-2.jpg"],
+        "category": "NFT",
+        "subcategory": "Mythical",
+        "created_at": "2025-08-18T10:00:00Z",
+        "updated_at": "2025-08-19T15:30:00Z",
+        "stock_quantity": 1,
+        "chain": "XRP Ledger",
+        "creator": "0x1234...5678",
+        "type": "digital",
+        "attributes": {
+          "rarity": "Legendary",
+          "power": 95,
+          "element": "Cosmic"
+        },
+        "variations": [
+          {
+            "id": "var-001",
+            "name": "Golden Edition",
+            "price_modifier": 1.5
+          }
+        ]
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440001",
+        "title": "Vintage Mechanical Watch",
+        "price_usd": 1299.99,
+        "description": "1960s Swiss-made automatic movement watch in pristine condition",
+        "images": ["/products/watch-1.jpg", "/products/watch-2.jpg"],
+        "category": "Physical",
+        "subcategory": "Watches",
+        "created_at": "2025-08-17T09:00:00Z",
+        "updated_at": "2025-08-19T14:20:00Z",
+        "stock_quantity": 1,
+        "shipping": {
+          "worldwide": true,
+          "cost": 25.00
+        },
+        "type": "physical",
+        "condition": "Vintage",
+        "attributes": {
+          "brand": "Swiss Timepiece",
+          "year": 1965,
+          "movement": "Automatic"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440002",
+        "title": "Cyber Punk City NFT",
+        "price_usd": 499.99,
+        "description": "Animated cyberpunk cityscape with dynamic lighting",
+        "images": ["/nfts/cyberpunk-1.jpg", "/nfts/cyberpunk-2.gif"],
+        "category": "NFT",
+        "subcategory": "Art",
+        "created_at": "2025-08-16T11:00:00Z",
+        "updated_at": "2025-08-19T13:15:00Z",
+        "stock_quantity": 1,
+        "chain": "Solana",
+        "creator": "0x5678...9012",
+        "type": "digital",
+        "attributes": {
+          "rarity": "Epic",
+          "animated": true,
+          "resolution": "4K"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440003",
+        "title": "Gaming PC Setup",
+        "price_usd": 2499.99,
+        "description": "High-end gaming PC with RGB setup",
+        "images": ["/products/pc-1.jpg", "/products/pc-2.jpg"],
+        "category": "Physical",
+        "subcategory": "Electronics",
+        "created_at": "2025-08-15T13:00:00Z",
+        "updated_at": "2025-08-19T12:10:00Z",
+        "stock_quantity": 3,
+        "shipping": {
+          "worldwide": false,
+          "regions": ["North America", "Europe"],
+          "cost": 150.00
+        },
+        "type": "physical",
+        "condition": "New",
+        "specs": {
+          "cpu": "Intel i9",
+          "gpu": "RTX 4090",
+          "ram": "64GB"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440004",
+        "title": "Crystal Pendant",
+        "price_usd": 129.99,
+        "description": "Natural amethyst crystal with sterling silver chain",
+        "images": ["/products/crystal-1.jpg", "/products/crystal-2.jpg"],
+        "category": "Physical",
+        "subcategory": "Jewelry",
+        "created_at": "2025-08-14T14:00:00Z",
+        "updated_at": "2025-08-19T11:05:00Z",
+        "stock_quantity": 5,
+        "shipping": {
+          "worldwide": true,
+          "cost": 10.00
+        },
+        "type": "physical",
+        "condition": "New",
+        "attributes": {
+          "material": "Sterling Silver",
+          "stone": "Amethyst",
+          "weight": "25g"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440005",
+        "title": "Limited Edition Sneaker",
+        "price_usd": 499.99,
+        "description": "Streetwear sneakers with glow-in-the-dark soles",
+        "images": ["/products/sneaker-1.jpg"],
+        "category": "Physical",
+        "subcategory": "Fashion",
+        "created_at": "2025-08-12T10:00:00Z",
+        "updated_at": "2025-08-19T09:15:00Z",
+        "stock_quantity": 20,
+        "shipping": {
+          "worldwide": true,
+          "cost": 20.00
+        },
+        "type": "physical",
+        "condition": "New",
+        "attributes": {
+          "brand": "UrbanFlex",
+          "size_range": "US 6-12"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440006",
+        "title": "Rare Vinyl Record",
+        "price_usd": 349.99,
+        "description": "First press edition of a classic rock album",
+        "images": ["/products/vinyl-1.jpg"],
+        "category": "Physical",
+        "subcategory": "Collectibles",
+        "created_at": "2025-08-10T12:00:00Z",
+        "updated_at": "2025-08-19T08:45:00Z",
+        "stock_quantity": 2,
+        "shipping": {
+          "worldwide": true,
+          "cost": 15.00
+        },
+        "type": "physical",
+        "condition": "Vintage",
+        "attributes": {
+          "artist": "The Classics",
+          "year": 1972,
+          "format": "12-inch LP"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440007",
+        "title": "Smartphone XR Pro",
+        "price_usd": 899.99,
+        "description": "Latest-gen smartphone with 1TB storage and AI features",
+        "images": ["/products/phone-1.jpg"],
+        "category": "Physical",
+        "subcategory": "Electronics",
+        "created_at": "2025-08-09T11:00:00Z",
+        "updated_at": "2025-08-19T08:10:00Z",
+        "stock_quantity": 50,
+        "shipping": {
+          "worldwide": true,
+          "cost": 35.00
+        },
+        "type": "physical",
+        "condition": "New",
+        "attributes": {
+          "brand": "NeonTech",
+          "ram": "12GB",
+          "storage": "1TB"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440008",
+        "title": "Handcrafted Leather Wallet",
+        "price_usd": 79.99,
+        "description": "Genuine leather, handmade with custom engraving option",
+        "images": ["/products/wallet-1.jpg"],
+        "category": "Physical",
+        "subcategory": "Accessories",
+        "created_at": "2025-08-08T10:00:00Z",
+        "updated_at": "2025-08-19T07:55:00Z",
+        "stock_quantity": 30,
+        "shipping": {
+          "worldwide": true,
+          "cost": 8.00
+        },
+        "type": "physical",
+        "condition": "New",
+        "attributes": {
+          "material": "Genuine Leather",
+          "color": "Brown"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440009",
+        "title": "Digital Painting Pack",
+        "price_usd": 59.99,
+        "description": "Set of 10 high-res fantasy digital artworks",
+        "images": ["/digital/paintings-1.jpg"],
+        "category": "Digital",
+        "subcategory": "Art",
+        "created_at": "2025-08-07T15:00:00Z",
+        "updated_at": "2025-08-19T07:00:00Z",
+        "stock_quantity": 999,
+        "type": "digital",
+        "attributes": {
+          "format": "PNG",
+          "resolution": "8K",
+          "license": "Personal Use"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440010",
+        "title": "Mechanical Keyboard RGB",
+        "price_usd": 179.99,
+        "description": "Hot-swappable switches, per-key RGB lighting",
+        "images": ["/products/keyboard-1.jpg"],
+        "category": "Physical",
+        "subcategory": "Electronics",
+        "created_at": "2025-08-06T14:00:00Z",
+        "updated_at": "2025-08-19T06:40:00Z",
+        "stock_quantity": 15,
+        "shipping": {
+          "worldwide": true,
+          "cost": 15.00
+        },
+        "type": "physical",
+        "condition": "New",
+        "attributes": {
+          "switch_type": "Kailh Red",
+          "layout": "ANSI",
+          "connection": "USB-C"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440011",
+        "title": "Limited Artwork Poster",
+        "price_usd": 49.99,
+        "description": "High-quality art poster, signed by the artist",
+        "images": ["/products/poster-1.jpg"],
+        "category": "Physical",
+        "subcategory": "Art",
+        "created_at": "2025-08-05T12:00:00Z",
+        "updated_at": "2025-08-19T06:00:00Z",
+        "stock_quantity": 100,
+        "shipping": {
+          "worldwide": true,
+          "cost": 5.00
+        },
+        "type": "physical",
+        "condition": "New",
+        "attributes": {
+          "artist": "Mira L.",
+          "size": "24x36 inch"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440012",
+        "title": "Wireless VR Headset",
+        "price_usd": 699.99,
+        "description": "Next-gen VR headset with hand tracking",
+        "images": ["/products/vr-1.jpg"],
+        "category": "Physical",
+        "subcategory": "Electronics",
+        "created_at": "2025-08-04T15:00:00Z",
+        "updated_at": "2025-08-19T05:45:00Z",
+        "stock_quantity": 12,
+        "shipping": {
+          "worldwide": true,
+          "cost": 40.00
+        },
+        "type": "physical",
+        "condition": "New",
+        "attributes": {
+          "brand": "VirtuX",
+          "resolution": "6K",
+          "tracking": "Hand + Eye"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440013",
+        "title": "Digital Music Pack",
+        "price_usd": 39.99,
+        "description": "Royalty-free background tracks for creators",
+        "images": ["/digital/music-1.jpg"],
+        "category": "Digital",
+        "subcategory": "Music",
+        "created_at": "2025-08-03T14:00:00Z",
+        "updated_at": "2025-08-19T05:30:00Z",
+        "stock_quantity": 999,
+        "type": "digital",
+        "attributes": {
+          "format": "MP3/WAV",
+          "tracks": 20,
+          "license": "Commercial Use"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440014",
+        "title": "Luxury Perfume",
+        "price_usd": 149.99,
+        "description": "Premium fragrance with a blend of oud & floral notes",
+        "images": ["/products/perfume-1.jpg"],
+        "category": "Physical",
+        "subcategory": "Beauty",
+        "created_at": "2025-08-02T13:00:00Z",
+        "updated_at": "2025-08-19T05:00:00Z",
+        "stock_quantity": 40,
+        "shipping": {
+          "worldwide": true,
+          "cost": 12.00
+        },
+        "type": "physical",
+        "condition": "New",
+        "attributes": {
+          "brand": "Elysian",
+          "volume": "100ml"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440015",
+        "title": "Smart Home Assistant",
+        "price_usd": 199.99,
+        "description": "Voice-controlled AI home assistant with neon LED base",
+        "images": ["/products/assistant-1.jpg"],
+        "category": "Physical",
+        "subcategory": "Electronics",
+        "created_at": "2025-08-01T12:00:00Z",
+        "updated_at": "2025-08-19T04:30:00Z",
+        "stock_quantity": 25,
+        "shipping": {
+          "worldwide": true,
+          "cost": 20.00
+        },
+        "type": "physical",
+        "condition": "New",
+        "attributes": {
+          "brand": "NeonAI",
+          "connectivity": "WiFi + Bluetooth"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440016",
+        "title": "Designer Backpack",
+        "price_usd": 249.99,
+        "description": "Premium leather backpack with hidden pockets",
+        "images": ["/products/backpack-1.jpg"],
+        "category": "Physical",
+        "subcategory": "Fashion",
+        "created_at": "2025-07-30T12:00:00Z",
+        "updated_at": "2025-08-19T04:00:00Z",
+        "stock_quantity": 60,
+        "shipping": {
+          "worldwide": true,
+          "cost": 18.00
+        },
+        "type": "physical",
+        "condition": "New",
+        "attributes": {
+          "material": "Premium Leather",
+          "color": "Black"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440017",
+        "title": "Meditation Digital Guide",
+        "price_usd": 19.99,
+        "description": "A complete mindfulness audio + ebook package",
+        "images": ["/digital/meditation-1.jpg"],
+        "category": "Digital",
+        "subcategory": "Wellness",
+        "created_at": "2025-07-29T12:00:00Z",
+        "updated_at": "2025-08-19T03:30:00Z",
+        "stock_quantity": 999,
+        "type": "digital",
+        "attributes": {
+          "format": "MP3 + PDF",
+          "duration": "8 hours audio",
+          "license": "Personal Use"
+        }
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440018",
+        "title": "Artisan Coffee Beans",
+        "price_usd": 24.99,
+        "description": "Single-origin roasted beans from Colombia",
+        "images": ["/products/coffee-1.jpg"],
+        "category": "Physical",
+        "subcategory": "Food & Drink",
+        "created_at": "2025-07-28T12:00:00Z",
+        "updated_at": "2025-08-19T03:00:00Z",
+        "stock_quantity": 100,
+        "shipping": {
+          "worldwide": true,
+          "cost": 12.00
+        },
+        "type": "physical",
+        "condition": "New",
+        "attributes": {
+          "origin": "Colombia",
+          "roast": "Medium",
+          "weight": "1kg"
+        }
+      }
+    
+    ]
+}
+  
