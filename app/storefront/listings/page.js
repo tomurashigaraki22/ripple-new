@@ -18,52 +18,48 @@ export default function MyListingsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
 
-  // Fetch listings from Flask API
+  // Fetch listings from Flask API (kept exactly, just formatted)
   useEffect(() => {
     const fetchListings = async () => {
       setLoading(true)
       setError(null)
       try {
-        const token = localStorage.getItem("token") // Or wherever you store JWT
+        const token = localStorage.getItem("token")
         const params = new URLSearchParams({
-          limit: 50, // optional, adjust as needed
+          limit: 50,
           offset: 0,
           status: statusFilter,
           category: categoryFilter,
         })
-        const res = await fetch(`https://ripple-flask-server.onrender.com/storefront/listings?${params.toString()}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
+        const res = await fetch(
+          `https://ripple-flask-server.onrender.com/storefront/listings?${params.toString()}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        )
         if (!res.ok) {
           const data = await res.json()
           throw new Error(data.error || "Failed to fetch listings")
         }
         const data = await res.json()
-    
-        // ✅ Format images and tags
-        const formattedListings = data.listings.map((listing) => {
+
+        // Format images and tags safely
+        const formattedListings = (data.listings || []).map((listing) => {
           let images = []
           let tags = []
           try {
-            images = typeof listing.images === "string" ? JSON.parse(listing.images) : listing.images
-          } catch (e) {
+            images = typeof listing.images === "string" ? JSON.parse(listing.images) : listing.images || []
+          } catch {
             images = []
           }
           try {
-            tags = typeof listing.tags === "string" ? JSON.parse(listing.tags) : listing.tags
-          } catch (e) {
+            tags = typeof listing.tags === "string" ? JSON.parse(listing.tags) : listing.tags || []
+          } catch {
             tags = []
           }
-    
-          return {
-            ...listing,
-            images,
-            tags,
-          }
+          return { ...listing, images, tags }
         })
-    
+
         setListings(formattedListings)
       } catch (err) {
         console.error("Error fetching listings:", err)
@@ -72,22 +68,26 @@ export default function MyListingsPage() {
         setLoading(false)
       }
     }
-    
 
     fetchListings()
-  }, [statusFilter, categoryFilter]) // refetch on filter change
+  }, [statusFilter, categoryFilter])
 
   const filteredListings = listings.filter((listing) => {
+    const title = (listing.title || "").toLowerCase()
+    const desc = (listing.description || "").toLowerCase()
+    const status = (listing.status || "").toLowerCase()
+    const category = (listing.category || "").toLowerCase()
+
     const matchesSearch =
-      listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      listing.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || listing.status === statusFilter
-    const matchesCategory = categoryFilter === "all" || listing.category.toLowerCase() === categoryFilter.toLowerCase()
+      title.includes(searchTerm.toLowerCase()) || desc.includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === "all" || status === statusFilter.toLowerCase()
+    const matchesCategory = categoryFilter === "all" || category === categoryFilter.toLowerCase()
+
     return matchesSearch && matchesStatus && matchesCategory
   })
 
   const getStatusColor = (status) => {
-    switch (status) {
+    switch ((status || "").toLowerCase()) {
       case "approved":
         return "bg-green-500/20 text-green-400 border-green-500/30"
       case "pending":
@@ -100,36 +100,38 @@ export default function MyListingsPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#111111]">
+    <div className="flex min-h-screen bg-[#111111] overflow-hidden">
+      {/* Sidebar (unchanged) */}
       <StorefrontSidebar />
 
-      <div className="flex-1 p-4 sm:p-6 md:p-8 ml-0 lg:ml-64 mt-0 md:mt-30">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">My Listings</h1>
+      {/* Main content wrapper with safe scrolling & no horizontal overflow */}
+      <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-8 lg:pl-64 mt-30">
+        {/* Header (responsive stack on small screens) */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold text-white mb-1 truncate">My Listings</h1>
             <p className="text-gray-400">Manage your marketplace listings</p>
           </div>
-          <Button className="bg-green-500 hover:bg-green-600 text-black font-medium">
-            <span className="mr-2">-</span>
+          <Button className="bg-green-500 hover:bg-green-600 text-black font-medium w-full sm:w-auto">
+            <span className="mr-2">+</span>
             New Listing
           </Button>
         </div>
 
-        {/* Search and Filters */}
-        <div className="flex gap-4 mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        {/* Search & Filters (stack on mobile) */}
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-8 w-full max-w-full">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               placeholder="Search listings..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder-gray-400"
+              className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 w-full"
             />
           </div>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-48 bg-gray-800/50 border-gray-700 text-white">
+            <SelectTrigger className="w-full md:w-48 bg-gray-800/50 border-gray-700 text-white">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700">
@@ -141,7 +143,7 @@ export default function MyListingsPage() {
           </Select>
 
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-48 bg-gray-800/50 border-gray-700 text-white">
+            <SelectTrigger className="w-full md:w-48 bg-gray-800/50 border-gray-700 text-white">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700">
@@ -163,24 +165,35 @@ export default function MyListingsPage() {
             <p className="text-gray-400 text-lg">No listings found matching your criteria.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 w-full max-w-full">
             {filteredListings.map((listing) => (
-              <Card key={listing.id} className="bg-[#111111] border-[#1a1a1a] hover:border-green-500 transition ease duration-500 overflow-hidden">
+              <Card
+                key={listing.id}
+                className="bg-[#111111] border-[#1a1a1a] hover:border-green-500 transition ease duration-500 overflow-hidden w-full"
+              >
                 <div className="aspect-video relative">
                   <img
                     src={listing.images?.[0] || "/placeholder.svg"}
                     alt={listing.title}
                     className="w-full h-full object-cover"
                   />
-                  <Badge className={`absolute top-3 right-3 ${getStatusColor(listing.status)}`}>{listing.status}</Badge>
+                  <Badge className={`absolute top-3 right-3 ${getStatusColor(listing.status)}`}>
+                    {listing.status}
+                  </Badge>
                 </div>
 
                 <CardContent className="p-4">
-                  <h3 className="text-white font-semibold text-lg mb-2 truncate">{listing.title}</h3>
-                  <p className="text-gray-400 text-sm mb-4 line-clamp-2">{listing.description}</p>
+                  <h3 className="text-white font-semibold text-lg mb-2 truncate">
+                    {listing.title}
+                  </h3>
+                  <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+                    {listing.description}
+                  </p>
 
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-green-400 font-bold text-lg">${listing.price}</span>
+                    <span className="text-green-400 font-bold text-lg">
+                      {listing.price}
+                    </span>
                     <div className="flex items-center gap-1 text-gray-400 text-sm">
                       <Eye className="w-4 h-4" />
                       <span>{listing.views}</span>
@@ -208,7 +221,7 @@ export default function MyListingsPage() {
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 }

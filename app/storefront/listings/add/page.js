@@ -208,7 +208,7 @@ export default function AddListingPage() {
     <div className="min-h-screen bg-[#111111] text-white">
       <StorefrontSidebar />
 
-      <div className="flex-1 p-4 sm:p-6 md:p-8 ml-0 lg:ml-64 mt-0 md:mt-30">
+      <div className="flex-1 p-4 sm:p-6 md:p-8 ml-0 lg:ml-64 mt-30 md:mt-30">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8">
