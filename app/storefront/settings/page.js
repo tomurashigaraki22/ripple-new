@@ -47,7 +47,7 @@ export default function StorefrontSettings() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const res = await fetch(`http://172.20.10.2:1234/storefront/me/settings/${user.userId}`, {
+        const res = await fetch(`https://ripple-flask-server.pxxl.pro/storefront/me/settings/${user.userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         const data = await res.json()
@@ -68,7 +68,7 @@ export default function StorefrontSettings() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const res = await fetch(`http://172.20.10.2:1234/storefront/me/settings/${user.userId}`, {
+      const res = await fetch(`https://ripple-flask-server.pxxl.pro/storefront/me/settings/${user.userId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(settings)

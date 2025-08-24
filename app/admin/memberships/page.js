@@ -4,7 +4,7 @@ import { Trash2, CheckCircle, XCircle, Search, PlusCircle } from "lucide-react"
 import AdminLayout from "../components/AdminLayout"
 import { useAuth } from "../../contexts/AuthContext"
 
-const API_BASE = "http://172.20.10.2:1234/admin" // Adjust Flask API
+const API_BASE = "https://ripple-flask-server.pxxl.pro/admin" // Adjust Flask API
 
 export default function AdminMemberships() {
   const { token, user, loading } = useAuth()

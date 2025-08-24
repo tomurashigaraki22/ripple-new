@@ -36,7 +36,7 @@ export default function MarketplacePage() {
     })
 
     try {
-      const res = await fetch(`http://172.20.10.2:1234/marketplace/listings?${params.toString()}`)
+      const res = await fetch(`https://ripple-flask-server.pxxl.pro/marketplace/listings?${params.toString()}`)
       const data = await res.json()
 
       setListings(data.listings || [])

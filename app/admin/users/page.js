@@ -4,7 +4,7 @@ import { Users, Trash2, Shield, CheckCircle, XCircle, Search } from "lucide-reac
 import AdminLayout from "../components/AdminLayout"
 import { useAuth } from "../../contexts/AuthContext"
 
-const API_BASE = "http://172.20.10.2:1234"
+const API_BASE = "https://ripple-flask-server.pxxl.pro"
 
 export default function AdminUsers() {
   const { token, user, loading } = useAuth()

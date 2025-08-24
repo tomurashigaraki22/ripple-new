@@ -38,7 +38,7 @@ export default function StorefrontDashboard() {
       console.log("Token: ", token)
 
       // Stats
-      const statsResponse = await fetch("http://172.20.10.2:1234/storefront/stats", { headers: headers })
+      const statsResponse = await fetch("https://ripple-flask-server.pxxl.pro/storefront/stats", { headers: headers })
       console.log("StatsR: ", statsResponse)
       if (statsResponse.ok) {
         const statsData = await statsResponse.json()
@@ -49,14 +49,14 @@ export default function StorefrontDashboard() {
       }
 
       // Recent listings (limit 5)
-      const listingsResponse = await fetch("http://172.20.10.2:1234/storefront/listings?limit=5", { headers: headers })
+      const listingsResponse = await fetch("https://ripple-flask-server.pxxl.pro/storefront/listings?limit=5", { headers: headers })
       if (listingsResponse.ok) {
         const listingsData = await listingsResponse.json()
         setRecentListings(Array.isArray(listingsData.listings) ? listingsData.listings : [])
       }
 
       // Recent orders (limit 5)
-      const ordersResponse = await fetch("http://172.20.10.2:1234/storefront/orders?limit=5", { headers: headers })
+      const ordersResponse = await fetch("https://ripple-flask-server.pxxl.pro/storefront/orders?limit=5", { headers: headers })
       if (ordersResponse.ok) {
         const ordersData = await ordersResponse.json()
         setRecentOrders(Array.isArray(ordersData.orders) ? ordersData.orders : [])
