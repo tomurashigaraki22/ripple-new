@@ -22,7 +22,7 @@ export default function StorefrontProfile() {
   useEffect(() => {
     async function fetchProfile() {
       try {
-        const res = await fetch("https://ripple-flask-server.pxxl.pro/storefront/profile", {
+        const res = await fetch("https://ripple-flask-server.onrender.com/storefront/profile", {
           headers: { Authorization: `Bearer ${token}` },
         })
         const data = await res.json()
@@ -42,7 +42,7 @@ export default function StorefrontProfile() {
   }
 
   const generateSignature = async (params) => {
-    const res = await fetch("https://ripple-flask-server.pxxl.pro/cloudinary/signature", {
+    const res = await fetch("https://ripple-flask-server.onrender.com/cloudinary/signature", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
@@ -88,7 +88,7 @@ export default function StorefrontProfile() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      await fetch("https://ripple-flask-server.pxxl.pro/storefront/profile", {
+      await fetch("https://ripple-flask-server.onrender.com/storefront/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(profile),

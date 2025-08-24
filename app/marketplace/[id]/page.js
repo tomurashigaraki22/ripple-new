@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import ListingDetail from "../../components/ListingDetail"
 
-const BASE_URL = "https://ripple-flask-server.pxxl.pro"
+const BASE_URL = "https://ripple-flask-server.onrender.com"
 
 export default async function ListingPage({ params }) {
   let listing = null

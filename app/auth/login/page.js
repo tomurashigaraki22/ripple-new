@@ -20,7 +20,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true); // start loading
     try {
-      const response = await fetch('https://ripple-flask-server.pxxl.pro/auth/login', {
+      const response = await fetch('https://ripple-flask-server.onrender.com/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

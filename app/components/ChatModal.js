@@ -111,7 +111,7 @@ export function ChatModal({ isOpen, onClose, order, userType, userId, user }) {
 
   const generateSignature = async (params) => {
     try {
-      const response = await fetch('https://ripple-flask-server.pxxl.pro/cloudinary/signature', {
+      const response = await fetch('https://ripple-flask-server.onrender.com/cloudinary/signature', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params)

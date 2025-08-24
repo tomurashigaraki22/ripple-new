@@ -28,7 +28,7 @@ export default function EscrowsPage() {
         offset: 0,
         status: statusFilter !== "all" ? statusFilter : ""
       })
-      const res = await fetch(`https://ripple-flask-server.pxxl.pro/storefront/escrows?${params.toString()}`, {
+      const res = await fetch(`https://ripple-flask-server.onrender.com/storefront/escrows?${params.toString()}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

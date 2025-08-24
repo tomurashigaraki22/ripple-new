@@ -25,7 +25,7 @@ export const metadata = {
   keywords: ["marketplace", "web3", "blockchain", "crypto"],
 };
 
-const SETTINGS_URL = "https://ripple-flask-server.pxxl.pro/admin/settings/api/admin/settings/status";
+const SETTINGS_URL = "https://ripple-flask-server.onrender.com/admin/settings/api/admin/settings/status";
 
 export default async function RootLayout({ children }) {
   let isMaintenance = false;

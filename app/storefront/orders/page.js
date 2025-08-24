@@ -36,7 +36,7 @@ export default function OrdersPage() {
       if (statusFilter !== "all") query.append("status", statusFilter)
         console.log("Tokenn is", token)
 
-      const res = await fetch(`https://ripple-flask-server.pxxl.pro/storefront/orders-list?${query.toString()}`, {
+      const res = await fetch(`https://ripple-flask-server.onrender.com/storefront/orders-list?${query.toString()}`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,

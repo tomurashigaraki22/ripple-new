@@ -31,7 +31,7 @@ export default function MyListingsPage() {
           status: statusFilter,
           category: categoryFilter,
         })
-        const res = await fetch(`https://ripple-flask-server.pxxl.pro/storefront/listings?${params.toString()}`, {
+        const res = await fetch(`https://ripple-flask-server.onrender.com/storefront/listings?${params.toString()}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

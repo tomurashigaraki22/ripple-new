@@ -4,7 +4,7 @@ import { Search, Calendar, User, Activity, Filter, Eye, Download } from "lucide-
 import AdminLayout from "../components/AdminLayout"
 import { useAuth } from "../../contexts/AuthContext"
 
-const API_BASE = "https://ripple-flask-server.pxxl.pro/admin"
+const API_BASE = "https://ripple-flask-server.onrender.com/admin"
 
 export default function AdminAuditTrail() {
   const { token, loading: authLoading, user } = useAuth()

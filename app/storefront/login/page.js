@@ -22,7 +22,7 @@ export default function StorefrontLogin() {
     setIsLoading(true)
 
     try {
-      const res = await fetch("https://ripple-flask-server.pxxl.pro/storefront/login", {
+      const res = await fetch("https://ripple-flask-server.onrender.com/storefront/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
