@@ -5,14 +5,44 @@ import { Card, CardContent } from "../components/ui/card"
 import { Badge } from "../components/ui/badge"
 import { RefreshCw, TrendingUp, Clock } from "lucide-react"
 import { Check, Star, Crown } from "lucide-react"
+import {sendEthereumPayment} from "../../lib/ethPayment"
+import {getAllXRPBPrices} from '../../lib/getXRPBPrices'
+import { useEffect, useState } from "react"
+import { useAuth } from "../contexts/AuthContext"
+import PaymentModal from '../components/PaymentModal'
+import { useXRPL } from "../contexts/XRPLContext"
+import ChainSelectModal from "../components/ChainSelectModal"
 
 export default function MembershipPage() {
+  const [xrpbPrices, setXrpbPrices] = useState({
+    solana: null,      // GeckoTerminal Solana price
+    xrpl: null,        // XRPL order book price
+    xrplEvm: null      // XRPL EVM DEX price
+  })
+  const [showChainModal, setShowChainModal] = useState(false)
+const [selectedChain, setSelectedChain] = useState(null)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const {xrpWalletAddress} = useXRPL()
+const [selectedTier, setSelectedTier] = useState(null)
+
+  const [priceLoadingStates, setPriceLoadingStates] = useState({
+    solana: true,
+    xrpl: true,
+    xrplEvm: true
+  });
+  const [currentMembership, setCurrentMembership] = useState(null)
+const [loadingMembership, setLoadingMembership] = useState(true)
+
+  const [lastPriceUpdate, setLastPriceUpdate] = useState(null);
+  const { token } = useAuth()
+
+  const [xrpbPrice, setXrpbPrice] = useState(null) // Main XRPB price
   const tokenPrices = [
     {
       id: "solana",
       name: "Solana",
       network: "SOL Network",
-      price: "$0.00002375",
+      price: xrpbPrices.solana,
       source: "GeckoTerminal",
       icon: "⚪", // Solana icon placeholder
       color: "text-purple-400",
@@ -23,7 +53,7 @@ export default function MembershipPage() {
       id: "xrpl",
       name: "XRPL",
       network: "XRP Ledger",
-      price: "$0.00006907",
+      price: xrpbPrices.xrpl,
       source: "Order Book",
       icon: "⚡", // XRPL icon placeholder
       color: "text-blue-400",
@@ -34,7 +64,7 @@ export default function MembershipPage() {
       id: "xrpl-evm",
       name: "XRPL EVM",
       network: "EVM Sidechain",
-      price: "$0.00053973",
+      price: xrpbPrices.xrplEvm,
       source: "DEX Pool",
       icon: "🔗", // EVM icon placeholder
       color: "text-orange-400",
@@ -42,6 +72,40 @@ export default function MembershipPage() {
       borderColor: "border-orange-500/30",
     },
   ]
+
+  function formatDate(dateStr) {
+    if (!dateStr) return "--"
+    const date = new Date(dateStr)
+    return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+  }
+  
+
+  const fetchCurrentMembership = async () => {
+    setLoadingMembership(true)
+    try {
+      const res = await fetch("https://ripple-flask-server.onrender.com/membership/info", {
+        headers: {
+          "Authorization": `Bearer ${token}` // or wherever you store JWT
+        }
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setCurrentMembership(data.currentMembership)
+      } else {
+        console.error("Error fetching membership:", data.error)
+        setCurrentMembership(null)
+      }
+    } catch (err) {
+      console.error("Error fetching membership:", err)
+      setCurrentMembership(null)
+    } finally {
+      setLoadingMembership(false)
+    }
+  }
+
+
+
+
 
   const membershipTiers = [
     {
@@ -105,9 +169,93 @@ export default function MembershipPage() {
     },
   ]
 
-  const handleRefreshPrices = () => {
+
+  const fetchAllXRPBPrices = async () => {
+    console.log('🔄 Fetching XRPB prices from all chains...');
+    
+    setPriceLoadingStates({
+      solana: true,
+      xrpl: true,
+      xrplEvm: true
+    });
+    
+    try {
+      const prices = await getAllXRPBPrices();
+      
+      setXrpbPrices({
+        solana: prices.solana || 0.0001, // Fallback price
+        xrpl: prices.xrpl || 0.0001,
+        xrplEvm: prices.xrplEvm || 0.0001
+      });
+      
+      // Set main price to the first available price
+      const mainPrice = prices.solana || prices.xrpl || prices.xrplEvm || 3.10;
+      setXrpbPrice(mainPrice);
+      setLastPriceUpdate(new Date());
+      
+      console.log('✅ All XRPB prices fetched:', prices);
+    } catch (error) {
+      console.error('❌ Error fetching XRPB prices:', error);
+      // Set fallback prices
+      setXrpbPrices({
+        solana: 0.0001,
+        xrpl: 0.0001,
+        xrplEvm: 0.0001
+      });
+    } finally {
+      setPriceLoadingStates({
+        solana: false,
+        xrpl: false,
+        xrplEvm: false
+      });
+    }
+  }
+
+
+  function formatNumber(num) {
+    if (num === null || num === undefined) return "--";
+  
+    const absNum = Math.abs(num);
+  
+    if (absNum >= 1_000_000_000) {
+      return (num / 1_000_000_000).toFixed(2).replace(/\.00$/, "") + "B";
+    } else if (absNum >= 1_000_000) {
+      return (num / 1_000_000).toFixed(2).replace(/\.00$/, "") + "M";
+    } else if (absNum >= 1_000) {
+      return (num / 1_000).toFixed(2).replace(/\.00$/, "") + "K";
+    } else {
+      return num.toString();
+    }
+  }
+  
+  
+
+  const tokenPriceColor = (chain) => {
+    switch(chain) {
+      case "solana": return "text-purple-400";
+      case "xrpl": return "text-blue-400";
+      case "xrplEvm": return "text-orange-400";
+      default: return "text-white";
+    }
+  };
+  
+
+  useEffect(() => {
+    fetchAllXRPBPrices()
+    // Set up interval to refresh prices every 30 seconds
+    const interval = setInterval(fetchAllXRPBPrices, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    if (token !== null) fetchCurrentMembership()
+  }, [token])
+
+
+  const handleRefreshPrices = async () => {
     // Simulate price refresh
     console.log("[v0] Refreshing token prices...")
+    await fetchAllXRPBPrices()
   }
 
   return (
@@ -141,16 +289,27 @@ export default function MembershipPage() {
           <div className="grid md:grid-cols-3 gap-8">
             {membershipTiers.map((tier) => (
               <Card
-                key={tier.id}
-                className={`relative bg-gray-900/50 ${tier.borderColor} border backdrop-blur-sm hover:bg-gray-900/70 transition-all duration-300 ${
-                  tier.popular ? "ring-2 ring-green-500/50" : ""
-                }`}
-              >
-                {tier.popular && (
+              key={tier.id}
+              className={`relative bg-gray-900/50 ${tier.borderColor} border backdrop-blur-sm hover:bg-gray-900/70 transition-all duration-300
+                ${
+                  currentMembership && currentMembership.tier.name.toLowerCase() === tier.id
+                    ? "ring-4 ring-yellow-400/50" // highlight Pro or Premium
+                    : tier.popular
+                    ? "ring-2 ring-green-500/50"
+                    : ""
+                }
+              `}
+            >
+                {tier.popular && !(currentMembership && currentMembership.tier.name.toLowerCase() === tier.id) && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-green-600 text-white px-4 py-1">Most Popular</Badge>
                   </div>
                 )}
+
+                {currentMembership && currentMembership.tier.name.toLowerCase() === tier.id && (
+                  <Badge className="bg-yellow-500 text-white px-3 py-1 mb-2">Current Plan</Badge>
+                )}
+
 
                 <CardContent className="p-8">
                   <div className="text-center mb-6">
@@ -160,12 +319,33 @@ export default function MembershipPage() {
                       <div className={tier.color}>{tier.icon}</div>
                     </div>
 
-                    <h3 className="text-2xl font-bold text-white mb-2">{tier.name}</h3>
+                    <h3 className="text-2xl font-bold text-white mb-4">{tier.name}</h3>
 
-                    <div className="mb-4">
-                      <span className={`text-4xl font-bold ${tier.color}`}>{tier.price}</span>
-                      <span className="text-gray-400">{tier.period}</span>
+                    {currentMembership && currentMembership.tier.name.toLowerCase() === tier.id && (
+                      <div className="flex flex-col items-center mb-">
+                        <span className="text-sm text-gray-300">
+                          Expires: {formatDate(currentMembership.membership.expiresAt)}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="mb-4 space-y-1">
+                      {["solana", "xrpl", "xrplEvm"].map((chain) => (
+                        <div key={chain} className="flex justify-center gap-2 items-baseline">
+                          <span className="text-sm text-gray-400 capitalize">{chain}:</span>
+                          <span className={`text-2xl font-bold ${tokenPriceColor(chain)}`}>
+                            {xrpbPrices[chain]
+                              ? formatNumber(parseFloat(tier?.price?.replace("$", "")) / xrpbPrices[chain])
+                              : "--"}{" "}
+                            XRPB
+                          </span>
+                        </div>
+                      ))}
                     </div>
+
+                    
+
+
 
                     <div className="space-y-2 mb-6">
                       <Badge variant="outline" className="text-gray-300 border-gray-600">
@@ -176,6 +356,8 @@ export default function MembershipPage() {
                       </Badge>
                     </div>
                   </div>
+
+                  
 
                   <ul className="space-y-3 mb-8">
                     {tier.features.map((feature, index) => (
@@ -188,8 +370,13 @@ export default function MembershipPage() {
 
                   <Button
                     className={`w-full ${tier.buttonStyle} text-white py-3 rounded-lg font-semibold transition-colors duration-200`}
+                    onClick={() => {
+                      setSelectedTier(tier)
+                      setShowChainModal(true)
+                    }}
+                    disabled={currentMembership && currentMembership.tier.name.toLowerCase() === tier.id}
                   >
-                    {tier.buttonText}
+                    {currentMembership?.tier?.name.toLowerCase() === tier?.id ? "Current Plan" : tier?.buttonText}
                   </Button>
                 </CardContent>
               </Card>
@@ -209,12 +396,11 @@ export default function MembershipPage() {
                 <p className="text-gray-400 mb-2">Real-time prices across different blockchain networks</p>
                 <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
                   <Clock className="w-4 h-4" />
-                  <span>Last updated: 19:42:52</span>
+                  <span>
+                    Last updated: {lastPriceUpdate ? lastPriceUpdate.toLocaleTimeString() : "--:--:--"}
+                  </span>
                 </div>
               </div>
-
-
-
 
               {/* Price Cards Grid */}
               <div className="grid md:grid-cols-3 gap-6 mb-8">
@@ -235,7 +421,13 @@ export default function MembershipPage() {
                         {token.source}
                       </Badge>
 
-                      <div className={`text-3xl font-bold mb-2 ${token.color}`}>{token.price}</div>
+                      {priceLoadingStates[token.id] ? (
+                        <div className="h-10 bg-gray-700 rounded mx-auto mb-2 w-1/2 animate-pulse"></div>
+                      ) : (
+                      <div className={`text-3xl font-bold mb-2 ${token.color}`}>
+                        {Number(token.price).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 8 })}
+                      </div>
+                      )}
 
                       <p className="text-sm text-gray-400">{token.network}</p>
                     </CardContent>
@@ -256,6 +448,24 @@ export default function MembershipPage() {
             </CardContent>
           </Card>
         </div>
+        
+        <ChainSelectModal
+  open={showChainModal}
+  onClose={() => setShowChainModal(false)}
+  onSelect={(chain) => setSelectedChain(chain)}
+/>
+
+        {selectedChain && (
+  <PaymentModal
+    open={true}
+    onClose={() => setSelectedChain(null)}
+    tier={selectedTier}
+    xrpWalletAddress={xrpWalletAddress}
+    fetchCurrentMembership={fetchCurrentMembership}
+    paymentMethod={selectedChain}
+  />
+)}
+
       </main>
     </div>
   )

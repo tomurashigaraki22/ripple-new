@@ -6,6 +6,8 @@ import Footer from "./components/Footer";
 import { AuthProvider } from "./contexts/AuthContext";
 import MaintenanceBanner from "./components/Maintenance"; // client component
 import SmoothScrollProvider from "./components/SmoothScroll";
+import { XRPLProvider } from "./contexts/XRPLContext";
+import { MetamaskProvider } from "./contexts/MetaMaskContext";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -48,6 +50,8 @@ export default async function RootLayout({ children }) {
     <html lang="en">
       <body className={`${spaceGrotesk.variable} ${sourceCode.variable} antialiased`}>
         <AuthProvider>
+          <XRPLProvider>
+            <MetamaskProvider>
           {/* <SmoothScrollProvider> */}
             {/* Banner rendered server-side (component is client but receives prop) */}
             <MaintenanceBanner isActive={isMaintenance} />
@@ -55,6 +59,8 @@ export default async function RootLayout({ children }) {
             {children}
             <Footer />
           {/* </SmoothScrollProvider> */}
+          </MetamaskProvider>
+          </XRPLProvider>
         </AuthProvider>
       </body>
     </html>

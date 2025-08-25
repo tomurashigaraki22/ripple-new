@@ -2,49 +2,45 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Wallet, ExternalLink } from "lucide-react"
+import { ArrowLeft, Wallet } from "lucide-react"
 import { Button } from "../components/ui/button"
+import { Clipboard } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card"
+import { useXRPL } from "../contexts/XRPLContext" // adjust path
+import { useMetamask } from "../contexts/MetaMaskContext"
+import copy from "copy-to-clipboard"
 
-const walletOptions = {
-  BTC: [
-    { name: "Electrum", icon: "⚡", description: "Lightweight Bitcoin wallet" },
-    { name: "Exodus", icon: "🚀", description: "Multi-currency wallet" },
-    { name: "Trust Wallet", icon: "🛡️", description: "Secure mobile wallet" },
-  ],
-  ETH: [
-    { name: "MetaMask", icon: "🦊", description: "Most popular Ethereum wallet" },
-    { name: "WalletConnect", icon: "🔗", description: "Connect any wallet" },
-    { name: "Coinbase Wallet", icon: "🔵", description: "Self-custody wallet" },
-  ],
-  XRP: [
-    { name: "XUMM", icon: "💎", description: "Official XRPL wallet" },
-    { name: "Ledger", icon: "🔐", description: "Hardware wallet support" },
-    { name: "Toast Wallet", icon: "🍞", description: "Simple XRP wallet" },
-  ],
-  "XRPL EVM": [
-    { name: "MetaMask", icon: "🦊", description: "For XRPL EVM sidechain" },
-    { name: "WalletConnect", icon: "🔗", description: "Universal connection" },
-    { name: "Trust Wallet", icon: "🛡️", description: "Mobile EVM support" },
-  ],
-  SOLANA: [
-    { name: "Phantom", icon: "👻", description: "Leading Solana wallet" },
-    { name: "Solflare", icon: "☀️", description: "Full-featured wallet" },
-    { name: "Sollet", icon: "🌟", description: "Web-based wallet" },
-  ],
-}
+export default function XRPLWalletConnect() {
+  const { connectXrpWallet, xrpWalletAddress, xrpBalance, xrpbBalance, disconnectXrpWallet } = useXRPL()
+  const [connecting, setConnecting] = useState(false)
+  const [copied, setCopied] = useState(false);
+  const {
+    metamaskWalletAddress,
+    ethBalance,
+    usdtBalance,
+    isConnected,
+    connectMetamaskWallet,
+    disconnectMetamaskWallet,
+    connecting: metMaskConnecting,
+  } = useMetamask();
+  
 
-export default function WalletConnect() {
-  const [selectedChain, setSelectedChain] = useState("ETH")
-  const [connecting, setConnecting] = useState(null)
-
-  const handleConnect = async (walletName) => {
-    setConnecting(walletName)
-    // Simulate connection process
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    console.log(`Connecting to ${walletName}...`)
-    setConnecting(null)
-    // Here you would implement actual wallet connection logic
+  const handleCopy = () => {
+    if (xrpWalletAddress) {
+      copy(xrpWalletAddress);
+      alert("Copied!");
+    }
+  };
+  
+  const handleConnect = async () => {
+    setConnecting(true)
+    try {
+      await connectXrpWallet()
+    } catch (error) {
+      console.error("XRPL Wallet connection failed:", error)
+    } finally {
+      setConnecting(false)
+    }
   }
 
   return (
@@ -57,77 +53,142 @@ export default function WalletConnect() {
         </Link>
 
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">Connect Your Wallet</h1>
-          <p className="text-gray-400 text-lg">Choose your preferred wallet to start trading on RippleBids</p>
-        </div>
-
-        {/* Chain Selector */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {Object.keys(walletOptions).map((chain) => (
-            <Button
-              key={chain}
-              variant={selectedChain === chain ? "default" : "outline"}
-              onClick={() => setSelectedChain(chain)}
-              className={`${
-                selectedChain === chain
-                  ? "bg-green-500 hover:bg-green-600 text-black"
-                  : "border-gray-600 text-gray-300 hover:bg-gray-800"
-              }`}
-            >
-              {chain}
-            </Button>
-          ))}
+          <h1 className="text-4xl font-bold text-white mb-4">Connect XRPL Wallet</h1>
+          <p className="text-gray-400 text-lg">
+            Connect your Xaman/XUMM wallet to manage XRP and XRPB tokens.
+          </p>
         </div>
       </div>
 
-      {/* Wallet Options */}
+      {/* XRPL Wallet Card */}
       <div className="max-w-4xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {walletOptions[selectedChain].map((wallet) => (
-            <Card
-              key={wallet.name}
-              className="group relative overflow-hidden border-gray-700 hover:border-green-500/50 transition-all duration-300 glass-effect-dark"
-              style={{
-                background: "rgba(255, 255, 255, 0.05)",
-                backdropFilter: "blur(10px)",
-                WebkitBackdropFilter: "blur(10px)",
-              }}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="text-2xl">{wallet.icon}</div>
-                    <div>
-                      <h3 className="text-white font-semibold text-lg">{wallet.name}</h3>
-                      <p className="text-gray-400 text-sm">{wallet.description}</p>
-                    </div>
+          <Card
+            className="group relative overflow-hidden border-gray-700 hover:border-green-500/50 transition-all duration-300 glass-effect-dark"
+            style={{
+              background: "rgba(255, 255, 255, 0.05)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+            }}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-center mb-4">
+                <div className="flex flex-col items-center space-x-3">
+                  <div className="text-2xl">💎</div>
+                  <div>
+                    <h3 className="text-white font-semibold text-lg">Xaman/XUMM</h3>
+                    <p className="text-gray-400 text-sm">Official XRPL wallet</p>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-green-400 transition-colors" />
                 </div>
+              </div>
 
+              {xrpWalletAddress ? (
+                <div className="mb-4">
+                  <div className="flex items-center space-x-2 text-gray-200 text-sm">
+      <p className="truncate overflow-hidden whitespace-nowrap">
+        Connected: {xrpWalletAddress}
+      </p>
+      <button
+        onClick={handleCopy}
+        className="p-1 rounded hover:bg-gray-700 transition-colors"
+        title="Copy address"
+      >
+        <Clipboard className={`w-4 h-4 ${copied ? "text-green-400" : "text-gray-400"}`} />
+      </button>
+      {copied && <span className="text-green-400 text-xs">Copied!</span>}
+    </div>
+                  <p className="text-gray-200 text-sm">XRP Balance: {xrpBalance}</p>
+                  <p className="text-gray-200 text-sm">XRPB Balance: {xrpbBalance}</p>
+                  <Button
+                    onClick={disconnectXrpWallet}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-medium mt-4"
+                  >
+                    Disconnect
+                  </Button>
+                </div>
+              ) : (
                 <Button
-                  onClick={() => handleConnect(wallet.name)}
-                  disabled={connecting === wallet.name}
+                  onClick={handleConnect}
+                  disabled={metMaskConnecting}
                   className="w-full bg-green-500 hover:bg-green-600 text-black font-medium"
                 >
-                  {connecting === wallet.name ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                      <span>Connecting...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <Wallet className="w-4 h-4" />
-                      <span>Connect</span>
-                    </div>
-                  )}
+                  {metMaskConnecting ? "Connecting..." : "Connect Wallet"}
                 </Button>
-              </CardContent>
+              )}
+            </CardContent>
 
-              {/* Glassy overlay effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-            </Card>
-          ))}
+            {/* Glassy overlay effect */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          </Card>
+
+          <Card
+            className="group relative overflow-hidden border-gray-700 hover:border-orange-500/50 transition-all duration-300 glass-effect-dark"
+            style={{
+              background: "rgba(255, 255, 255, 0.05)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+            }}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-center mb-4">
+                <div className="flex flex-col items-center space-x-3">
+                  <div className="w-12 h-12 mb-2">
+                    <img
+                      src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/metamask-icon.png"
+                      alt="MetaMask"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-white font-semibold text-lg">MetaMask Wallet</h3>
+                    <p className="text-gray-400 text-sm">Official Ethereum wallet</p>
+                  </div>
+                </div>
+              </div>
+
+              {isConnected && metamaskWalletAddress ? (
+                <div className="mb-4">
+                  <div className="flex items-center space-x-2 text-gray-200 text-sm">
+                    <p className="truncate overflow-hidden whitespace-nowrap">
+                      Connected: {metamaskWalletAddress}
+                    </p>
+                    <button
+                      onClick={handleCopy}
+                      className="p-1 rounded hover:bg-gray-700 transition-colors"
+                      title="Copy address"
+                    >
+                      <Clipboard
+                        className={`w-4 h-4 ${
+                          copied ? "text-green-400" : "text-gray-400"
+                        }`}
+                      />
+                    </button>
+                    {copied && (
+                      <span className="text-green-400 text-xs">Copied!</span>
+                    )}
+                  </div>
+                  <p className="text-gray-200 text-sm">ETH Balance: {ethBalance}</p>
+                  <p className="text-gray-200 text-sm">USDT Balance: {usdtBalance}</p>
+                  <Button
+                    onClick={disconnectMetamaskWallet}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-medium mt-4"
+                  >
+                    Disconnect
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  onClick={connectMetamaskWallet}
+                  disabled={connecting}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium"
+                >
+                  {connecting ? "Connecting..." : "Connect MetaMask"}
+                </Button>
+              )}
+            </CardContent>
+
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          </Card>
         </div>
 
         {/* Footer Info */}
@@ -147,6 +208,31 @@ export default function WalletConnect() {
           </div>
         </div>
       </div>
+
+      {/* MetaMask Wallet Card */}
+      {/* <div className="max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        </div>
+
+        <div className="mt-12 text-center glass-effect-dark p-6 rounded-lg">
+          <div
+            className="inline-block p-6 rounded-lg border border-gray-700"
+            style={{
+              background: "rgba(255, 255, 255, 0.05)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+            }}
+          >
+            <h3 className="text-white font-semibold mb-2">Secure Connection</h3>
+            <p className="text-gray-400 text-sm max-w-md">
+              Your MetaMask connection is encrypted and secure. RippleBids never
+              stores your private keys or seed phrases.
+            </p>
+          </div>
+        </div>
+      </div> */}
+
     </div>
   )
 }
