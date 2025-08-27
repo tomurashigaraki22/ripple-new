@@ -17,7 +17,7 @@ export default function AdminSettings() {
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch("http://172.20.10.2:1234/admin/settings/api/admin/settings/status", {
+      const res = await fetch("https://ripple-flask-server.onrender.com/admin/settings/api/admin/settings/status", {
         headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json()
@@ -33,7 +33,7 @@ export default function AdminSettings() {
     setSaving(true)
     try {
       const token = localStorage.getItem("authToken")
-      const res = await fetch("http://172.20.10.2:1234/admin/settings/api/admin/settings/toggle", {
+      const res = await fetch("https://ripple-flask-server.onrender.com/admin/settings/api/admin/settings/toggle", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

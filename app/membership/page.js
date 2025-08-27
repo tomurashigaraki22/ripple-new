@@ -85,7 +85,7 @@ const [loadingMembership, setLoadingMembership] = useState(true)
   const fetchCurrentMembership = async () => {
     setLoadingMembership(true)
     try {
-      const res = await fetch("http://172.20.10.2:1234/membership/info", {
+      const res = await fetch("https://ripple-flask-server.onrender.com/membership/info", {
         headers: {
           "Authorization": `Bearer ${token}` // or wherever you store JWT
         }

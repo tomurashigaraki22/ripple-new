@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
     setError('')
     setLoading(true)
     try {
-      const res = await fetch('http://172.20.10.2:1234/admin/auth/login', {
+      const res = await fetch('https://ripple-flask-server.onrender.com/admin/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
