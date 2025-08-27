@@ -49,7 +49,7 @@ export default async function RootLayout({ children }) {
   
   return (
     <html lang="en">
-      <body className={`${spaceGrotesk.variable} ${sourceCode.variable} antialiased`}>
+      <body className={`${spaceGrotesk.variable} ${sourceCode.variable} antialiased bg-[#111111]`}>
         <AuthProvider>
           <XRPLProvider>
             <MetamaskProvider>
