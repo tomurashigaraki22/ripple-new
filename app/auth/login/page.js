@@ -20,7 +20,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true); // start loading
     try {
-      const response = await fetch('http://172.20.10.2:1234/auth/login', {
+      const response = await fetch('https://ripple-flask-server.onrender.com/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

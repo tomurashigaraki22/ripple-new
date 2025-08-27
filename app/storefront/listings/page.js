@@ -32,7 +32,7 @@ export default function MyListingsPage() {
           category: categoryFilter,
         })
         const res = await fetch(
-          `http://172.20.10.2:1234/storefront/listings?${params.toString()}`,
+          `https://ripple-flask-server.onrender.com/storefront/listings?${params.toString()}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

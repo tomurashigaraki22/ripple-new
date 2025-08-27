@@ -34,7 +34,7 @@ export default function OrdersPage() {
     try {
       const query = new URLSearchParams()
       if (statusFilter !== "all") query.append("status", statusFilter)
-      const res = await fetch(`http://172.20.10.2:1234/storefront/orders-list?${query.toString()}`, {
+      const res = await fetch(`https://ripple-flask-server.onrender.com/storefront/orders-list?${query.toString()}`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,

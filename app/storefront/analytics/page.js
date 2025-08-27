@@ -19,7 +19,7 @@ export default function StorefrontAnalytics() {
     async function fetchAnalytics() {
       try {
         const res = await fetch(
-          "http://172.20.10.2:1234/storefront/analytics/metrics?range=30d",
+          "https://ripple-flask-server.onrender.com/storefront/analytics/metrics?range=30d",
           { headers: { Authorization: `Bearer ${token}` } }
         )
         const data = await res.json()

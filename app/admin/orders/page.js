@@ -23,7 +23,7 @@ export default function AdminOrders() {
         status: statusFilter,
         search: searchText
       })
-      const res = await fetch(`http://172.20.10.2:1234/admin/admin/orders?${query.toString()}`, {
+      const res = await fetch(`https://ripple-flask-server.onrender.com/admin/admin/orders?${query.toString()}`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }

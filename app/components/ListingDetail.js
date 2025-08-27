@@ -229,7 +229,7 @@ const getPaymentAmount = (usdPrice, chainType) => {
       }
 
       let walletForPayment
-      if (chainType === 'xrp') walletForPayment = xrplWallet
+      if (chainType === 'xrpl') walletForPayment = xrplWallet
       else if (chainType === 'evm') walletForPayment = getSigner
       else throw new Error(`Unsupported chain type: ${chainType}`)
 
@@ -306,7 +306,7 @@ const getPaymentAmount = (usdPrice, chainType) => {
 
       // Create escrow
       setPaymentResult({ message: "Creating escrow..." })
-      const escrowResponse = await fetch('http://172.20.10.2:1234/escrows/create', {
+      const escrowResponse = await fetch('https://ripple-flask-server.onrender.com/escrows/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
