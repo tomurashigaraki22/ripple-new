@@ -494,7 +494,7 @@ useEffect(() => {
                 : paymentMethod === "xrpl"
                 ? "Pay with XRPL"
                 : paymentMethod === "ethereum"
-                ? "Pay with Ethereum"
+                ? "Pay with XRPL EVM"
                 : "Pay with Bitcoin"}
             </Button>
 

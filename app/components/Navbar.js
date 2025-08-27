@@ -64,7 +64,7 @@ const Navbar = () => {
     { href: "/membership", label: "Membership" },
     // Conditional link based on user login
     !user
-      ? { href: "/about", label: "About" }
+      ? { href: "/legal/terms", label: "Terms" }
       : { href: "/marketplace/orders", label: "My Orders" },
   ]
 
