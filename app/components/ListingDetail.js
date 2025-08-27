@@ -239,7 +239,8 @@ const getPaymentAmount = (usdPrice, chainType) => {
       const mappedChain = chainType === 'evm' ? 'xrpl_evm' : 'xrpl'
 
       if (mappedChain === 'xrpl') {
-        paymentResp = await sendXRPLXRPBPayment(walletForPayment, amount)
+        paymentResp = await sendXRPLXRPBPayment({account: xrpWalletAddress}, process.env.NEXT_PUBLIC_ESCROW_XRPL_WALLET, amount, "5852504200000000000000000000000000000000",
+        "rsEaYfqdZKNbD3SK55xzcjPm3nDrMj4aUT")
       } else if (mappedChain === 'xrpl_evm') {
 
         const NETWORK_CONFIG = {
