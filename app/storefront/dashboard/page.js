@@ -35,7 +35,7 @@ export default function StorefrontDashboard() {
       }
 
       // Stats
-      const statsResponse = await fetch("https://ripple-flask-server.onrender.com/storefront/stats", { headers })
+      const statsResponse = await fetch("http://172.20.10.2:1234/storefront/stats", { headers })
       if (statsResponse.ok) {
         const statsData = await statsResponse.json()
         setStats(statsData.stats)
@@ -45,14 +45,14 @@ export default function StorefrontDashboard() {
       }
 
       // Recent listings
-      const listingsResponse = await fetch("https://ripple-flask-server.onrender.com/storefront/listings?limit=5", { headers })
+      const listingsResponse = await fetch("http://172.20.10.2:1234/storefront/listings?limit=5", { headers })
       if (listingsResponse.ok) {
         const listingsData = await listingsResponse.json()
         setRecentListings(Array.isArray(listingsData.listings) ? listingsData.listings : [])
       }
 
       // Recent orders
-      const ordersResponse = await fetch("https://ripple-flask-server.onrender.com/storefront/orders?limit=5", { headers })
+      const ordersResponse = await fetch("http://172.20.10.2:1234/storefront/orders?limit=5", { headers })
       if (ordersResponse.ok) {
         const ordersData = await ordersResponse.json()
         setRecentOrders(Array.isArray(ordersData.orders) ? ordersData.orders : [])

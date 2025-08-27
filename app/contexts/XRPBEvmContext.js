@@ -8,10 +8,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAccount, useConnect, useDisconnect, useSwitchChain, useWalletClient } from 'wagmi';
 import { BrowserProvider, ethers } from 'ethers';
 
-const MetamaskContext = createContext(null);
+const EvmContext = createContext(null);
 
 // Define XRPL EVM Sidechain Testnet with CORRECT configuration
-const xrplEvmMainnet = defineChain({
+const xrplEvmTestnet = defineChain({
   id: 1440000, // XRPL EVM Testnet chain ID
   name: 'XRPL EVM Sidechain Mainnet',
   network: 'xrpl-evm-mainnet',
@@ -36,32 +36,6 @@ const xrplEvmMainnet = defineChain({
   },
 });
 
-const xrplEvmTestnet = defineChain({
-  id: 1449000,
-  name: 'XRPL EVM Sidechain Testnet',
-  network: 'xrpl-evm-testnet',
-  nativeCurrency: {
-    decimals: 18,
-    name: 'XRP',
-    symbol: 'XRP',
-  },
-  rpcUrls: {
-    default: {
-      http: ['https://rpc.testnet.xrplevm.org'],
-    },
-    public: {
-      http: ['https://rpc.testnet.xrplevm.org'],
-    },
-  },
-  blockExplorers: {
-    default: {
-      name: 'XRPL EVM Testnet Explorer',
-      url: 'https://explorer.testnet.xrplevm.org',
-    },
-  },
-});
-
-
 // Helper function to detect mobile
 const isMobile = () => {
   if (typeof window === 'undefined') return false;
@@ -70,11 +44,12 @@ const isMobile = () => {
 
 // Simplified Wagmi configuration - only injected connector
 const config = createConfig({
-  chains: [xrplEvmTestnet, xrplEvmMainnet],
-  connectors: [metaMask()],
+  chains: [xrplEvmTestnet],
+  connectors: [
+    metaMask(),
+  ],
   transports: {
-    [xrplEvmTestnet.id]: http("https://rpc.testnet.xrplevm.org"),  // ✅ explicit RPC
-    [xrplEvmMainnet.id]: http("https://rpc.xrplevm.org"),          // ✅ explicit RPC
+    [xrplEvmTestnet.id]: http(),
   },
 });
 
@@ -82,7 +57,7 @@ const queryClient = new QueryClient();
 
 
 // Inner component that uses Wagmi hooks
-const MetamaskProviderInner = ({ children }) => {
+const EvmProviderInner = ({ children }) => {
   const { address, isConnected, isConnecting, chain } = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
@@ -114,52 +89,57 @@ const connectMetamaskWallet = async () => {
 };
 
 
-const switchToXRPLEVM = async () => {
-  try {
-    const chainIdHex = "0x161c28"; // XRPL-EVM Testnet (1449000)
-    // const chainIdHex = "0x15f900"; // XRPL-EVM Mainnet (1440000)
-
-    if (switchChain) {
-      await switchChain({ chainId: parseInt(chainIdHex, 16) }); 
-      console.log("Switched to XRPL-EVM Testnet via Wagmi");
-      return;
-    }
-
-    if (typeof window !== "undefined" && window.ethereum) {
-      try {
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: chainIdHex }],
-        });
-        console.log("Successfully switched to XRPL-EVM Testnet");
-      } catch (switchError) {
-        if (switchError.code === 4902) {
-          await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [{
-              chainId: chainIdHex,
-              chainName: "XRPL EVM Sidechain Testnet",
-              nativeCurrency: {
-                name: "XRP",
-                symbol: "XRP",
-                decimals: 18,
-              },
-              rpcUrls: ["https://rpc.testnet.xrplevm.org"],  // ✅ FIXED
-              blockExplorerUrls: ["https://explorer.testnet.xrplevm.org"],
-            }],
-          });
-          console.log("Added + switched to XRPL-EVM Testnet");
-        } else {
-          throw switchError;
-        }
+  const switchToXRPLEVM = async () => {
+    try {
+      // Use Wagmi's switchChain for better mobile compatibility
+      console.log("CHain")
+      if (switchChain) {
+        await switchChain({ chainId: 1440000 });
+        console.log('Successfully switched to XRPL EVM testnet via Wagmi');
+        return;
       }
-    }
-  } catch (error) {
-    console.error("Failed to switch:", error);
-    alert("Please switch manually in your wallet.");
-  }
-};
 
+      // Fallback to direct MetaMask call
+      if (typeof window !== 'undefined' && window.ethereum) {
+        // const chainIdHex = '0x161c28';
+        const chainIdHex = '0x15f900'
+        
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: chainIdHex }],
+          });
+          console.log('Successfully switched to XRPL EVM testnet');
+        } catch (switchError) {
+          if (switchError.code === 4902) {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: 1440000,
+                chainName: 'XRPL EVM Sidechain',
+                nativeCurrency: {
+                  name: 'XRP',
+                  symbol: 'XRP',
+                  decimals: 18,
+                },
+                rpcUrls: ['https://rpc.xrplevm.org'],
+                blockExplorerUrls: ['https://explorer.xrplevm.org'],
+              }],
+            });
+            console.log('Successfully added and switched to XRPL EVM testnet');
+          } else {
+            throw switchError;
+          }
+        }
+      } else {
+        console.warn('Cannot switch network: No wallet available');
+        alert('Please manually switch to XRPL EVM Mainnet in your wallet');
+      }
+    } catch (error) {
+      console.error('Failed to switch to XRPL EVM testnet:', error);
+      alert('Failed to switch to XRPL EVM Mainnet. Please switch manually in your wallet.');
+    }
+  };
 
   const disconnectMetamaskWallet = () => {
     disconnect();
@@ -187,36 +167,35 @@ const getSigner = async () => {
     isConnected,
     connecting: isConnecting,
     currentChain: chain,
-    isXRPLEVM: chain?.id === 1440000 || chain?.id === 1449000,
+    isXRPLEVM: chain?.name === "XRPL EVM Sidechain Mainnet",  // <-- HERE!
     connectMetamaskWallet,
     disconnectMetamaskWallet,
     switchToXRPLEVM,
     getSigner,
-    switchChain,
     walletClient,
   };
 
   return (
-    <MetamaskContext.Provider value={value}>
+    <EvmContext.Provider value={value}>
       {children}
-    </MetamaskContext.Provider>
+    </EvmContext.Provider>
   );
 };
 
-export const MetamaskProvider = ({ children }) => {
+export const EvmProvider = ({ children }) => {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <MetamaskProviderInner>
+        <EvmProviderInner>
           {children}
-        </MetamaskProviderInner>
+        </EvmProviderInner>
       </QueryClientProvider>
     </WagmiProvider>
   );
 };
 
-export const useMetamask = () => {
-  const context = useContext(MetamaskContext);
+export const useEvm = () => {
+  const context = useContext(EvmContext);
   if (!context) {
     throw new Error('useMetamask must be used within a MetamaskProvider');
   }

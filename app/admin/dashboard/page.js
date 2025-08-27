@@ -37,7 +37,7 @@ export default function AdminDashboard() {
         return
       }
 
-      const response = await fetch("https://ripple-flask-server.onrender.com/admin/metrics/dashboard", {
+      const response = await fetch("http://172.20.10.2:1234/admin/metrics/dashboard", {
         headers: {
           'Authorization': `Bearer ${token}`
         }

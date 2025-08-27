@@ -20,6 +20,7 @@ export default function XRPLWalletConnect() {
     usdtBalance,
     isConnected,
     connectMetamaskWallet,
+    switchToChain,
     disconnectMetamaskWallet,
     connecting: metMaskConnecting,
   } = useMetamask();
@@ -167,8 +168,14 @@ export default function XRPLWalletConnect() {
                       <span className="text-green-400 text-xs">Copied!</span>
                     )}
                   </div>
-                  <p className="text-gray-200 text-sm">ETH Balance: {ethBalance}</p>
+                  {/* <p className="text-gray-200 text-sm">ETH Balance: {ethBalance}</p>
                   <p className="text-gray-200 text-sm">USDT Balance: {usdtBalance}</p>
+                  <Button
+                    onClick={() => switchToChain("0x15f900")}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium mt-4"
+                  >
+                    Switch To XRPL Testnet (EVM)
+                  </Button> */}
                   <Button
                     onClick={disconnectMetamaskWallet}
                     className="w-full bg-red-600 hover:bg-red-700 text-white font-medium mt-4"

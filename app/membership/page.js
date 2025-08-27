@@ -12,6 +12,7 @@ import { useAuth } from "../contexts/AuthContext"
 import PaymentModal from '../components/PaymentModal'
 import { useXRPL } from "../contexts/XRPLContext"
 import ChainSelectModal from "../components/ChainSelectModal"
+import { useMetamask } from "../contexts/MetaMaskContext"
 
 export default function MembershipPage() {
   const [xrpbPrices, setXrpbPrices] = useState({
@@ -24,6 +25,7 @@ const [selectedChain, setSelectedChain] = useState(null)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const {xrpWalletAddress} = useXRPL()
 const [selectedTier, setSelectedTier] = useState(null)
+const { currentChain, switchChain } = useMetamask()
 
   const [priceLoadingStates, setPriceLoadingStates] = useState({
     solana: true,
@@ -83,7 +85,7 @@ const [loadingMembership, setLoadingMembership] = useState(true)
   const fetchCurrentMembership = async () => {
     setLoadingMembership(true)
     try {
-      const res = await fetch("https://ripple-flask-server.onrender.com/membership/info", {
+      const res = await fetch("http://172.20.10.2:1234/membership/info", {
         headers: {
           "Authorization": `Bearer ${token}` // or wherever you store JWT
         }
@@ -463,6 +465,8 @@ const [loadingMembership, setLoadingMembership] = useState(true)
     xrpWalletAddress={xrpWalletAddress}
     fetchCurrentMembership={fetchCurrentMembership}
     paymentMethod={selectedChain}
+    chain={currentChain}
+    switchChain={switchChain}
   />
 )}
 

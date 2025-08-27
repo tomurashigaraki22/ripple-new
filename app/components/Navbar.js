@@ -62,8 +62,11 @@ const Navbar = () => {
     { href: "/marketplace", label: "Marketplace" },
     { href: "/wallet", label: "Wallet" },
     { href: "/membership", label: "Membership" },
-    { href: "/about", label: "About" },
-  ];
+    // Conditional link based on user login
+    !user
+      ? { href: "/about", label: "About" }
+      : { href: "/marketplace/orders", label: "My Orders" },
+  ]
 
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl z-50">

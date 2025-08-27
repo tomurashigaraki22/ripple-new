@@ -3,7 +3,7 @@
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { CheckCircle, XCircle } from "lucide-react"
 
-export default function PaymentProcessingModal({ open, onClose, status, error }) {
+export default function PaymentProcessingModal({ open, onClose, status, error, paymentResult }) {
   if (!open) return null
 
   return (
@@ -16,8 +16,21 @@ export default function PaymentProcessingModal({ open, onClose, status, error })
             <AiOutlineLoading3Quarters className="animate-spin text-white text-5xl" />
             <h2 className="text-lg font-semibold text-white">Processing Payment...</h2>
             <p className="text-gray-400 text-sm">
-              Please confirm your transaction. This may take a few moments.
+              {paymentResult?.message || "Please confirm your transaction."}
             </p>
+
+            {/* 🔹 BTC QR Code & Address */}
+            {paymentResult?.showQR && (
+              <div className="flex flex-col items-center gap-2 mt-4">
+                <img src={paymentResult.qrCode} alt="BTC QR" className="w-40 h-40 rounded-lg border border-gray-700" />
+                <p className="text-white text-sm break-all">
+                  <strong>Address:</strong> {paymentResult.btcAddress}
+                </p>
+                <p className="text-white text-sm">
+                  <strong>Amount:</strong> {paymentResult.btcAmount} BTC
+                </p>
+              </div>
+            )}
           </div>
         )}
 

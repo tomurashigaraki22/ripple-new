@@ -1,6 +1,6 @@
 import Dialog from "./ui/dialog"
 import { Button } from "./ui/button"
-import { Coins, Wallet } from "lucide-react"
+import { Coins, Wallet, Bitcoin } from "lucide-react"
 
 export default function ChainSelectModal({ open, onClose, onSelect }) {
   return (
@@ -31,6 +31,15 @@ export default function ChainSelectModal({ open, onClose, onSelect }) {
         >
           <Wallet className="w-5 h-5" />
           Ethereum
+        </Button>
+
+        {/* Bitcoin */}
+        <Button
+          className="w-full flex items-center gap-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:opacity-90 text-white py-4 rounded-xl text-lg shadow-md"
+          onClick={() => { onSelect("btc"); onClose() }}
+        >
+          <Bitcoin className="w-5 h-5" />
+          Bitcoin
         </Button>
       </div>
     </Dialog>

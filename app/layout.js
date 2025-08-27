@@ -8,6 +8,7 @@ import MaintenanceBanner from "./components/Maintenance"; // client component
 import SmoothScrollProvider from "./components/SmoothScroll";
 import { XRPLProvider } from "./contexts/XRPLContext";
 import { MetamaskProvider } from "./contexts/MetaMaskContext";
+import { EvmProvider } from "./contexts/XRPBEvmContext";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -27,7 +28,7 @@ export const metadata = {
   keywords: ["marketplace", "web3", "blockchain", "crypto"],
 };
 
-const SETTINGS_URL = "https://ripple-flask-server.onrender.com/admin/settings/api/admin/settings/status";
+const SETTINGS_URL = "http://172.20.10.2:1234/admin/settings/api/admin/settings/status";
 
 export default async function RootLayout({ children }) {
   let isMaintenance = false;
@@ -53,11 +54,13 @@ export default async function RootLayout({ children }) {
           <XRPLProvider>
             <MetamaskProvider>
           {/* <SmoothScrollProvider> */}
+          <EvmProvider>
             {/* Banner rendered server-side (component is client but receives prop) */}
             <MaintenanceBanner isActive={isMaintenance} />
             <Navbar />
             {children}
             <Footer />
+          </EvmProvider>
           {/* </SmoothScrollProvider> */}
           </MetamaskProvider>
           </XRPLProvider>

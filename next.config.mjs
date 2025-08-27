@@ -8,6 +8,9 @@ const nextConfig = {
       // ✅ Ignore ESLint build errors
       ignoreDuringBuilds: true,
     },
+    images: {
+      domains: ['res.cloudinary.com'],
+    },
   };
 
 export default nextConfig;
