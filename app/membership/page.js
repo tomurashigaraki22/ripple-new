@@ -85,7 +85,7 @@ const [loadingMembership, setLoadingMembership] = useState(true)
   const fetchCurrentMembership = async () => {
     setLoadingMembership(true)
     try {
-      const res = await fetch("https://ripple-flask-server.onrender.com/membership/info", {
+      const res = await fetch("http://172.20.10.2:1234/membership/info", {
         headers: {
           "Authorization": `Bearer ${token}` // or wherever you store JWT
         }
@@ -355,6 +355,9 @@ const [loadingMembership, setLoadingMembership] = useState(true)
                       </Badge>
                       <Badge variant="outline" className="text-gray-300 border-gray-600 ml-2">
                         {tier.fee} fee
+                      </Badge>
+                      <Badge variant="outline" className="text-gray-300 border-gray-600 ml-2">
+                        $ {tier.price} /month
                       </Badge>
                     </div>
                   </div>

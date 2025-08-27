@@ -92,7 +92,7 @@ export default function AddListingPage() {
           public_id: `listing_${timestamp}_${Math.random().toString(36).substring(7)}`,
         };
   
-        const signatureRes = await fetch("https://ripple-flask-server.onrender.com/cloudinary/signature", {
+        const signatureRes = await fetch("http://172.20.10.2:1234/cloudinary/signature", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(params),
@@ -186,7 +186,7 @@ export default function AddListingPage() {
       };
   
       const token = localStorage.getItem("token");
-      const res = await fetch("https://ripple-flask-server.onrender.com/storefront/listings", {
+      const res = await fetch("http://172.20.10.2:1234/storefront/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),

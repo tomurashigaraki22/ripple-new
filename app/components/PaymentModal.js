@@ -359,7 +359,7 @@ useEffect(() => {
     })
 
     const token = localStorage.getItem("token")
-    const res = await fetch("https://ripple-flask-server.onrender.com/membership/verify-payment", {
+    const res = await fetch("http://172.20.10.2:1234/membership/verify-payment", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

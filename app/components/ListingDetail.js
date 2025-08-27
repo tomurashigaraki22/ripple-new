@@ -306,7 +306,7 @@ const getPaymentAmount = (usdPrice, chainType) => {
 
       // Create escrow
       setPaymentResult({ message: "Creating escrow..." })
-      const escrowResponse = await fetch('https://ripple-flask-server.onrender.com/escrows/create', {
+      const escrowResponse = await fetch('http://172.20.10.2:1234/escrows/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

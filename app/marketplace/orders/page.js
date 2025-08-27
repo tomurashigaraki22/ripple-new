@@ -27,7 +27,7 @@ export default function MyOrdersPage() {
       })
       if (selectedStatus !== "all") params.append("status", selectedStatus)
 
-      const res = await fetch(`https://ripple-flask-server.onrender.com/orders/get?${params}`, {
+      const res = await fetch(`http://172.20.10.2:1234/orders/get?${params}`, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
       })
       if (!res.ok) throw new Error("Failed to fetch orders")

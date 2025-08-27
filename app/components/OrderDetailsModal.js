@@ -16,7 +16,7 @@ export function OrderDetailsModal({ isOpen, onClose, orderId, token }) {
         setError(null)
         setOrderDetails(null)
 
-        const res = await fetch(`https://ripple-flask-server.onrender.com/orders/${orderId}`, {
+        const res = await fetch(`http://172.20.10.2:1234/orders/${orderId}`, {
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
         })
         if (!res.ok) throw new Error("Failed to fetch order details")
