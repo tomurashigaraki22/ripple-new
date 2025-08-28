@@ -306,6 +306,7 @@ export default function ListingDetail({ listing }) {
         )
               
         const balance = await provider.getBalance(await signer.getAddress())
+        alert(`Eth Balance: ${balance}`)
         if (balance < formattedAmount) {
           throw new Error("Insufficient ETH balance")
         }
