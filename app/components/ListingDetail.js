@@ -300,8 +300,11 @@ export default function ListingDetail({ listing }) {
         }
       
         // ✅ amount conversion (use parseUnits instead of parseEther for safety)
-        const formattedAmount = ethers.parseUnits(amount.toString(), 18)
-      
+        const formattedAmount = ethers.parseUnits(
+          parseFloat(amount).toFixed(18), 
+          18
+        )
+              
         const balance = await provider.getBalance(await signer.getAddress())
         if (balance < formattedAmount) {
           throw new Error("Insufficient ETH balance")
