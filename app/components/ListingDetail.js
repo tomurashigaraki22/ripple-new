@@ -20,6 +20,8 @@ export default function ListingDetail({ listing }) {
   const [quantity, setQuantity] = useState(1)
   const [xrpbPrice, setXrpbPrice] = useState(null)
   const [orderProcessing, setOrderProcessing] = useState(false)
+  const [ethPrice, setEthPrice] = useState(null)
+
   const { user } = useAuth()
   const [priceLoadingStates, setPriceLoadingStates]= useState({
     solana: false,
@@ -56,9 +58,9 @@ export default function ListingDetail({ listing }) {
     disconnectXrpWallet,
   } = useXRPL()
 
+
   useEffect(() => {
-    const fetchAllXRPBPrices = async () => {
-      setPriceLoadingStates({ solana:true, xrpl:true, xrplEvm:true })
+    const fetchPrices = async () => {
       try {
         const prices = await getAllXRPBPrices()
         setXrpbPrices({
@@ -66,15 +68,15 @@ export default function ListingDetail({ listing }) {
           xrpl: prices.xrpl || null,
           xrplEvm: prices.xrplEvm || null
         })
-        setXrpbPrice(prices.solana || prices.xrpl || prices.xrplEvm || 3.10)
+        // fetch ETH/USD from Coingecko
+        const ethResp = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")
+        const ethData = await ethResp.json()
+        setEthPrice(ethData.ethereum.usd)
       } catch (err) {
         console.error(err)
-        setXrpbPrices({ solana:null, xrpl:null, xrplEvm:null })
-      } finally {
-        setPriceLoadingStates({ solana:false, xrpl:false, xrplEvm:false })
       }
     }
-    fetchAllXRPBPrices()
+    fetchPrices()
   }, [])
   
 
@@ -119,31 +121,7 @@ export default function ListingDetail({ listing }) {
   }
 
   // Build available payment options dynamically
-  const paymentOptions = useMemo(() => {
-    const options = []
-  
-    if (address && isConnected && isXRPLEVM) {
-      options.push({
-        type: "evm",
-        name: "XRPB (EVM)",
-        currency: "XRPB",
-        address: evmWallet,
-        icon: "🟢",
-      })
-    }
-  
-    if (xrplWallet && xrpWalletAddress) {
-      options.push({
-        type: "xrpl",
-        name: "XRPB (XRPL)",
-        currency: "XRPB",
-        address: xrpWalletAddress,
-        icon: "🔵",
-      })
-    }
-  
-    return options
-  }, [evmWallet, isConnected, isXRPLEVM, xrplWallet, xrpWalletAddress])
+
   
   const handleBuyNow = async () => {
     if (listing.is_physical) {
@@ -172,32 +150,32 @@ export default function ListingDetail({ listing }) {
   }
 
   // Returns the XRPB amount needed for a listing depending on the chain
-const getPaymentAmount = (usdPrice, chainType) => {
-  if (!usdPrice || isNaN(usdPrice) || usdPrice <= 0) return 0;
-
-  let xrpbRate = 0;
-
-  switch (chainType) {
-    case 'solana':
-      xrpbRate = xrpbPrices.solana;
-      break;
-    case 'xrpl':
-      xrpbRate = xrpbPrices.xrpl;
-      break;
-    case 'evm': // XRPL-EVM chain
-    case 'xrpl_evm':
-      xrpbRate = xrpbPrices.xrplEvm;
-      break;
-    default:
-      console.warn(`Unsupported chain type: ${chainType}`);
-      xrpbRate = xrpbPrices.xrpl || 0.0001; // fallback
+  const getPaymentAmount = (usdPrice, chainType) => {
+    if (!usdPrice || isNaN(usdPrice) || usdPrice <= 0) return 0;
+  
+    let rate = 0;
+  
+    switch (chainType) {
+      case "solana":
+        rate = xrpbPrices.solana
+        break
+      case "xrpl":
+        rate = xrpbPrices.xrpl
+        break
+      case "evm":
+      case "xrpl_evm":
+        rate = xrpbPrices.xrplEvm
+        break
+      case "ethereum":
+        rate = ethPrice
+        break
+      default:
+        console.warn(`Unsupported chain type: ${chainType}`)
+        rate = 1
+    }
+  
+    return usdPrice / rate
   }
-
-  console.log("Payment price : ", (usdPrice/xrpbRate), chainType)
-
-  return usdPrice / xrpbRate;
-}
-
 
   const handlePaymentConfirm = async () => {
     if (!user) {
@@ -231,6 +209,7 @@ const getPaymentAmount = (usdPrice, chainType) => {
       let walletForPayment
       if (chainType === 'xrpl') walletForPayment = xrplWallet
       else if (chainType === 'evm') walletForPayment = getSigner
+      else if (chainType === 'ethereum') walletForPayment = getSigner
       else throw new Error(`Unsupported chain type: ${chainType}`)
 
       setPaymentResult({ message: "Sending payment..." })
@@ -238,10 +217,10 @@ const getPaymentAmount = (usdPrice, chainType) => {
       let paymentResp
       const mappedChain = chainType === 'evm' ? 'xrpl_evm' : 'xrpl'
 
-      if (mappedChain === 'xrpl') {
+      if (chainType === 'xrpl') {
         paymentResp = await sendXRPLXRPBPayment({account: xrpWalletAddress}, process.env.NEXT_PUBLIC_ESCROW_XRPL_WALLET, amount, "5852504200000000000000000000000000000000",
         "rsEaYfqdZKNbD3SK55xzcjPm3nDrMj4aUT")
-      } else if (mappedChain === 'xrpl_evm') {
+      } else if (chainType === 'xrpl_evm' || chainType === "evm") {
 
         const NETWORK_CONFIG = {
           "xrpl-evm-mainnet": {
@@ -301,6 +280,43 @@ const getPaymentAmount = (usdPrice, chainType) => {
           rpcExplorerBase: explorerBase
         })
       }
+      else if (chainType === "ethereum") {
+        const signer = await getSigner()
+        const provider = signer.provider
+      
+        const network = await provider.getNetwork()
+      
+        // ✅ Ensure we're on Ethereum mainnet (chainId = 1)
+        if (network.chainId !== 1n) {
+          try {
+            await window.ethereum.request({
+              method: "wallet_switchEthereumChain",
+              params: [{ chainId: "0x1" }], // hex chainId for mainnet
+            })
+            throw new Error("Switched to Ethereum Mainnet. Please try payment again.")
+          } catch (switchError) {
+            throw new Error("Failed to switch to Ethereum Mainnet. Please switch manually in MetaMask.")
+          }
+        }
+      
+        // ✅ amount conversion (use parseUnits instead of parseEther for safety)
+        const formattedAmount = ethers.parseUnits(amount.toString(), 18)
+      
+        const balance = await provider.getBalance(await signer.getAddress())
+        if (balance < formattedAmount) {
+          throw new Error("Insufficient ETH balance")
+        }
+      
+        // ✅ proceed with payment
+        paymentResp = await sendEthereumPayment(signer, formattedAmount, {
+          recipient: process.env.NEXT_PUBLIC_ETH_ESCROW_ADDRESS,
+          tokenSymbol: "ETH",
+          network: "ethereum-mainnet",
+          rpcExplorerBase: "https://etherscan.io/tx/"
+        })
+      }
+      
+      
 
       if (!paymentResp.success) throw new Error(paymentResp.error || 'Payment failed')
       setPaymentResult({ message: "Payment successful!", txHash: paymentResp.txHash || paymentResp.signature, showQR: paymentResp.showQR, qrCode: paymentResp.qrCode, btcAddress: paymentResp.btcAddress, btcAmount: paymentResp.btcAmount })
@@ -619,13 +635,20 @@ const getPaymentAmount = (usdPrice, chainType) => {
 
         console.log("Recomputing payment options for modal", { evmWallet, isConnected, isXRPLEVM, xrplWallet, xrpWalletAddress })
   
-        if (evmWallet && isConnected && isXRPLEVM) {
+        if (evmWallet && isConnected) {
           paymentOptions.push({
             type: "evm",
             name: "XRPB (EVM)",
             currency: "XRPB",
             address: evmWallet,
             icon: "🟢",
+          })
+          paymentOptions.push({
+            type: "ethereum",
+            name: "Ethereum (Mainnet)",
+            currency: "ETH",
+            address: evmWallet,
+            icon: "⚪",
           })
         }
   
@@ -637,6 +660,10 @@ const getPaymentAmount = (usdPrice, chainType) => {
             address: xrpWalletAddress,
             icon: "🔵",
           })
+
+          // if (address && isConnected) {
+
+          // }
         }
   
         return (

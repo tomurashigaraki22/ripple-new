@@ -175,7 +175,20 @@ useEffect(() => {
   
     try {
       // Convert fiat → token amount
-      const ethAmount = fiatAmount / xrpbPrice;
+      let ethAmount;
+    if (network === "eth-mainnet") {
+      // Fetch ETH/USD price from CoinGecko
+      const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
+      const data = await res.json();
+      const ethPrice = data.ethereum.usd;
+
+      if (!ethPrice) throw new Error("Failed to fetch ETH price from CoinGecko");
+
+      ethAmount = fiatAmount / ethPrice; // USD → ETH
+    } else {
+      // For XRPL-EVM tokens, keep your original conversion
+      ethAmount = fiatAmount / xrpbPrice;
+    }
   
       // XRPL-EVM config
       const NETWORK_CONFIG = {
@@ -188,6 +201,13 @@ useEffect(() => {
           explorerBase: "https://explorer.testnet.xrplevm.org/tx/",
           tokenAddress: "0x2557C801144b11503BB524C5503AcCd48E5F54fE",
           chainId: 1449000, // 👈 XRPL-EVM testnet chainId (example, update with real)
+        },
+        "eth-mainnet": {
+          explorerBase: "https://etherscan.io/tx/",
+          chainId: 1,
+          tokenAddress: null, // WETH
+          symbol: "ETH",
+          decimals: 18,
         },
       };
   
@@ -253,7 +273,7 @@ useEffect(() => {
       );
   
       if (result.success) {
-        await finalizePayment("xrpl-evm", result.txHash, fiatAmount);
+        await finalizePayment(network, result.txHash, fiatAmount);
       } else {
         setPaymentResult({ success: false, error: result.error });
         seterrMessage(result.error);
@@ -348,17 +368,36 @@ useEffect(() => {
 
   // 🔹 Shared finalize (backend verification + membership activation)
   const finalizePayment = async (method, txHash, amount, paymentUrl = null) => {
+    let explorerUrl = null;
+  
+    switch (method) {
+      case "xrpl":
+        explorerUrl = `https://livenet.xrpl.org/transactions/${txHash}`;
+        break;
+      case "xrpl-evm-mainnet":
+        explorerUrl = `https://explorer.xrplevm.org/tx/${txHash}`;
+        break;
+      case "eth-mainnet":
+        explorerUrl = `https://etherscan.io/tx/${txHash}`;
+        break;
+      case "btc":
+        explorerUrl = `https://mempool.space/tx/${txHash}`;
+        break;
+      default:
+        explorerUrl = null;
+    }
+  
+    // ✅ Update local state with success first
     setPaymentResult({
       success: true,
       txHash,
-      explorerUrl: method === "xrpl"
-        ? `https://livenet.xrpl.org/transactions/${txHash}`
-        : `https://explorer.testnet.xrplevm.org.io/tx/${txHash}`,
+      explorerUrl,
       paymentUrl,
       message: "Payment successful!"
-    })
-
-    const token = localStorage.getItem("token")
+    });
+  
+    // 🔑 Verify with backend
+    const token = localStorage.getItem("token");
     const res = await fetch("https://ripple-flask-server.onrender.com/membership/verify-payment", {
       method: "POST",
       headers: {
@@ -374,9 +413,10 @@ useEffect(() => {
         paymentUrl,
         verified: true
       })
-    })
-
-    const membershipResult = await res.json()
+    });
+  
+    const membershipResult = await res.json();
+  
     if (res.ok && membershipResult.success) {
       setPaymentResult(prev => ({
         ...prev,
@@ -384,132 +424,162 @@ useEffect(() => {
         membershipData: membershipResult.membership,
         storefrontCredentials: membershipResult.storefrontCredentials,
         emailSent: membershipResult.emailSent
-      }))
-      await fetchCurrentMembership()
+      }));
+      await fetchCurrentMembership();
     }
-  }
+  };
+  
 
   return (
     <>
       <Modal open={open} onClose={onClose}>
-{/* inside Modal content */}
-      <div className="max-w-full sm:max-w-md mx-auto p-4 sm:p-6 bg-[#111111] rounded-2xl relative">
-        <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 text-center">
-          Pay for {tier?.name} Plan
-        </h2>
-
-        {/* 🔹 Payment Method Selector */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <Button
-            className={`w-full ${paymentMethod === "xrpl" ? "bg-green-600" : "bg-gray-700"} text-white`}
-            onClick={() => setPaymentResult(null) || seterrMessage("") || (window.paymentMethod = "xrpl")}
-          >
-            XRPL
-          </Button>
-          <Button
-            className={`w-full ${paymentMethod === "ethereum" ? "bg-green-600" : "bg-gray-700"} text-white`}
-            onClick={() => setPaymentResult(null) || (window.paymentMethod = "ethereum")}
-          >
-            Ethereum
-          </Button>
-          <Button
-            className={`w-full ${paymentMethod === "btc" ? "bg-green-600" : "bg-gray-700"} text-white`}
-            onClick={() => setPaymentResult(null) || (window.paymentMethod = "btc")}
-          >
-            Bitcoin
-          </Button>
-        </div>
-
-        {/* 🔹 Payment Details */}
-        {loading ? (
-          <p className="text-gray-400 text-center">
-            Loading {paymentMethod.toUpperCase()} price...
-          </p>
-        ) : (
-          <>
-            <div className="mb-4 text-center">
-              {paymentMethod === "xrpl" && (
-                <>
-                  <p className="text-gray-200">
-                    Amount: <span className="font-bold">{formatNumber(fiatAmount / xrpbPrice)} XRPB</span>
-                  </p>
-                  <p className="text-gray-400 text-sm">1 XRPB = ${xrpbPrice.toFixed(6)}</p>
-                </>
-              )}
-
-              {paymentMethod === "ethereum" && (
-                <p className="text-gray-200">
-                  Amount: <span className="font-bold">~{(fiatAmount / xrpbPrice).toFixed(6)} ETH</span>
-                </p>
-              )}
-
-              {paymentMethod === "btc" && (
-                <p className="text-gray-200">
-                  Amount: <span className="font-bold">
-                    ≈ {(fiatAmount / btcPrice).toFixed(6)} BTC
-                  </span>
-                  <span className="block text-gray-400 text-sm">
-                    1 BTC = ${btcPrice.toLocaleString()}
-                  </span>
-                </p>
-              )}
-
-
-              {isProcessing && <p className="text-yellow-400 text-sm">Time left: {formatTime(timeLeft)}</p>}
-            </div>
-
-            {/* 🔹 Payment Status Messages */}
-            {paymentResult?.pending && (
-              <p className="text-yellow-400 text-center mb-2">{paymentResult.message}</p>
-            )}
-
-            {paymentResult?.success && (
-              <p className="text-green-400 text-center mb-2">Payment successful!</p>
-            )}
-
-            {paymentResult?.success === false && paymentResult?.error && (
-              <p className="text-red-500 text-center mb-2">Payment failed: {paymentResult.error}</p>
-            )}
-
-            {paymentResult?.membershipActivated && (
-              <p className="text-green-400 text-center text-sm mt-2">
-                Membership activated successfully!
-              </p>
-            )}
-
-            {/* 🔹 Dynamic Pay Button */}
+        <div className="max-w-full sm:max-w-md mx-auto p-4 sm:p-6 bg-[#111111] rounded-2xl relative">
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 text-center">
+            Pay for {tier?.name} Plan
+          </h2>
+  
+          {/* 🔹 Payment Method Selector */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
             <Button
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold text-lg mt-3"
-              onClick={
-                paymentMethod === "xrpl"
-                  ? handleXRPLPayment
-                  : paymentMethod === "ethereum"
-                  ? () => handleEthPayment("xrpl-evm-mainnet")
-                  : () => handleBTCPayment("mainnet")
-              }
-              disabled={isProcessing}
+              className={`w-full ${paymentMethod === "xrpl" ? "bg-green-600" : "bg-gray-700"} text-white`}
+              onClick={() => {
+                setPaymentResult(null);
+                seterrMessage("");
+                setPaymentMethod("xrpl");
+              }}
             >
-              {isProcessing
-                ? "Processing..."
-                : paymentMethod === "xrpl"
-                ? "Pay with XRPL"
-                : paymentMethod === "ethereum"
-                ? "Pay with XRPL EVM"
-                : "Pay with Bitcoin"}
+              XRPL
             </Button>
-
-            {isProcessing && (
-              <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center rounded-2xl">
-                <AiOutlineLoading3Quarters className="animate-spin text-white text-4xl mb-2" />
-                <p className="text-white text-center">Waiting for payment completion...</p>
+            <Button
+              className={`w-full ${paymentMethod === "xrpl-evm-mainnet" ? "bg-green-600" : "bg-gray-700"} text-white`}
+              onClick={() => {
+                setPaymentResult(null);
+                seterrMessage("");
+                setPaymentMethod("xrpl-evm-mainnet");
+              }}
+            >
+              XRPL EVM
+            </Button>
+            <Button
+              className={`w-full ${paymentMethod === "eth-mainnet" ? "bg-green-600" : "bg-gray-700"} text-white`}
+              onClick={() => {
+                setPaymentResult(null);
+                seterrMessage("");
+                setPaymentMethod("eth-mainnet");
+              }}
+            >
+              Ethereum
+            </Button>
+            <Button
+              className={`w-full ${paymentMethod === "btc" ? "bg-green-600" : "bg-gray-700"} text-white`}
+              onClick={() => {
+                setPaymentResult(null);
+                seterrMessage("");
+                setPaymentMethod("btc");
+              }}
+            >
+              Bitcoin
+            </Button>
+          </div>
+  
+          {/* 🔹 Payment Details */}
+          {loading ? (
+            <p className="text-gray-400 text-center">
+              Loading {paymentMethod?.toUpperCase()} price...
+            </p>
+          ) : (
+            <>
+              <div className="mb-4 text-center">
+                {paymentMethod === "xrpl" && (
+                  <>
+                    <p className="text-gray-200">
+                      Amount: <span className="font-bold">{formatNumber(fiatAmount / xrpbPrice)} XRPB</span>
+                    </p>
+                    <p className="text-gray-400 text-sm">1 XRPB = ${xrpbPrice.toFixed(6)}</p>
+                  </>
+                )}
+  
+                {paymentMethod === "xrpl-evm-mainnet" && (
+                  <p className="text-gray-200">
+                    Amount: <span className="font-bold">~{(fiatAmount / xrpbPrice).toFixed(6)} XRPB (on EVM)</span>
+                  </p>
+                )}
+  
+                {paymentMethod === "eth-mainnet" && (
+                  <p className="text-gray-200">
+                    Amount: <span className="font-bold">~{(fiatAmount / ethPrice).toFixed(6)} ETH</span>
+                  </p>
+                )}
+  
+                {paymentMethod === "btc" && (
+                  <p className="text-gray-200">
+                    Amount: <span className="font-bold">
+                      ≈ {(fiatAmount / btcPrice).toFixed(6)} BTC
+                    </span>
+                    <span className="block text-gray-400 text-sm">
+                      1 BTC = ${btcPrice.toLocaleString()}
+                    </span>
+                  </p>
+                )}
+  
+                {isProcessing && <p className="text-yellow-400 text-sm">Time left: {formatTime(timeLeft)}</p>}
               </div>
-            )}
-          </>
-        )}
-      </div>
-
+  
+              {/* 🔹 Payment Status Messages */}
+              {paymentResult?.pending && (
+                <p className="text-yellow-400 text-center mb-2">{paymentResult.message}</p>
+              )}
+  
+              {paymentResult?.success && (
+                <p className="text-green-400 text-center mb-2">Payment successful!</p>
+              )}
+  
+              {paymentResult?.success === false && paymentResult?.error && (
+                <p className="text-red-500 text-center mb-2">Payment failed: {paymentResult.error}</p>
+              )}
+  
+              {paymentResult?.membershipActivated && (
+                <p className="text-green-400 text-center text-sm mt-2">
+                  Membership activated successfully!
+                </p>
+              )}
+  
+              {/* 🔹 Dynamic Pay Button */}
+              <Button
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold text-lg mt-3"
+                onClick={
+                  paymentMethod === "xrpl"
+                    ? handleXRPLPayment
+                    : paymentMethod === "xrpl-evm-mainnet"
+                    ? () => handleEthPayment("xrpl-evm-mainnet")
+                    : paymentMethod === "eth-mainnet"
+                    ? () => handleEthPayment("eth-mainnet")
+                    : () => handleBTCPayment("mainnet")
+                }
+                disabled={isProcessing}
+              >
+                {isProcessing
+                  ? "Processing..."
+                  : paymentMethod === "xrpl"
+                  ? "Pay with XRPL"
+                  : paymentMethod === "xrpl-evm-mainnet"
+                  ? "Pay with XRPL EVM"
+                  : paymentMethod === "eth-mainnet"
+                  ? "Pay with Ethereum"
+                  : "Pay with Bitcoin"}
+              </Button>
+  
+              {isProcessing && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center rounded-2xl">
+                  <AiOutlineLoading3Quarters className="animate-spin text-white text-4xl mb-2" />
+                  <p className="text-white text-center">Waiting for payment completion...</p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </Modal>
-
+  
       {/* Unified status modal */}
       <PaymentProcessingModal
         open={!!paymentResult}
@@ -526,7 +596,7 @@ useEffect(() => {
         error={paymentResult?.error}
         paymentResult={paymentResult}
       />
-
     </>
-  )
+  );
+  
 }
