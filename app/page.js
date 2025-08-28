@@ -1,6 +1,8 @@
+import { useRouter } from 'next/navigation';
 import './globals.css'
 
 export default function Home() {
+  const router = useRouter()
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white pt-20">
       {/* Hero Section */}
@@ -14,10 +16,10 @@ export default function Home() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
-          <button className="btn-neon px-6 md:px-8 py-3 text-base lg:text-lg w-full sm:w-auto">
+          <button className="btn-neon px-6 md:px-8 py-3 text-base lg:text-lg w-full sm:w-auto" onClick={() => {router.push("/wallet")}}>
             🔌 Connect Wallet
           </button>
-          <button className="px-6 md:px-8 py-3 text-base lg:text-lg border border-[#39FF14] rounded-full hover:bg-[#39FF14]/10 transition-all w-full sm:w-auto">
+          <button className="px-6 md:px-8 py-3 text-base lg:text-lg border border-[#39FF14] rounded-full hover:bg-[#39FF14]/10 transition-all w-full sm:w-auto" onClick={() => router.push("/marketplace")}>
             🌐 Join Marketplace
           </button>
         </div>
