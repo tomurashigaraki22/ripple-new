@@ -14,6 +14,7 @@ import { ethers } from "ethers"
 import { sendEthereumPayment } from "../../lib/ethPayment"
 import { sendXRPLXRPBPayment } from "../../lib/productPaymentHelper"
 import { getAllXRPBPrices } from "../../lib/getXRPBPrices"
+import { sendSolanaPayment } from "../../lib/solPayment"
 
 export default function ListingDetail({ listing }) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
@@ -49,6 +50,15 @@ export default function ListingDetail({ listing }) {
     isConnected,
     getSigner
   } = useMetamask()
+  const {
+    publicKey,
+    connected,
+    connection,
+    connecting: phantomConnecting,
+    balance,
+    disconnect,
+    sendTransaction
+  } = usePhantom();
   const {
     xrpWalletAddress,
     xrplWallet,
@@ -318,6 +328,30 @@ export default function ListingDetail({ listing }) {
           network: "ethereum-mainnet",
           rpcExplorerBase: "https://etherscan.io/tx/"
         })
+      } else if (chainType === "solana") {
+        // ✅ Native SOL payment
+        paymentResp = await sendSolanaPayment(
+          {
+            publicKey,
+            connected,
+            sendTransaction,   // coming from your Phantom context
+          },
+          amount,
+          connection,
+          "solana" // 👈 type is explicitly "solana"
+        );
+      } else if (chainType === "xrpb-sol") {
+        // ✅ XRBP-SOL SPL token payment
+        paymentResp = await sendSolanaPayment(
+          {
+            publicKey,
+            connected,
+            sendTransaction,   // from Phantom context
+          },
+          amount,
+          connection,
+          "xrpb-sol" // 👈 type is explicitly "xrpb-sol"
+        );
       }
       
       
