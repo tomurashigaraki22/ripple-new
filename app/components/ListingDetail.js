@@ -731,7 +731,7 @@ const getPaymentAmount = (usdPrice, chainType) => {
           paymentOptions.push({
             type: "xrpb-sol",
             name: "XRPB-SOL (SOL)",
-            currency: "XROB-SOL",
+            currency: "XRPB-SOL",
             address: publicKey.toString(),
             icon: "🟣",
           })
