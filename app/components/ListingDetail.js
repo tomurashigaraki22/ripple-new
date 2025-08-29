@@ -690,6 +690,23 @@ export default function ListingDetail({ listing }) {
             icon: "⚪",
           })
         }
+
+        if (publicKey && connected && connection) {
+          paymentOptions.push({
+            type: "solana",
+            name: "Solana (SOL)",
+            currency: "SOL",
+            address: publicKey.toString(),
+            icon: "🟣",
+          })
+          paymentOptions.push({
+            type: "xrpb-sol",
+            name: "XRPB-SOL (SOL)",
+            currency: "XROB-SOL",
+            address: publicKey.toString(),
+            icon: "🟣",
+          })
+        }
   
         if (xrplWallet && xrpWalletAddress) {
           paymentOptions.push({
@@ -704,6 +721,7 @@ export default function ListingDetail({ listing }) {
 
           // }
         }
+        
   
         return (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
