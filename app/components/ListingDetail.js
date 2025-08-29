@@ -180,7 +180,7 @@ export default function ListingDetail({ listing }) {
 // Fetch Solana price from CoinGecko
 
 
-const getPaymentAmount = async (usdPrice, chainType) => {
+const getPaymentAmount = (usdPrice, chainType) => {
   if (!usdPrice || isNaN(usdPrice) || usdPrice <= 0) return 0;
 
   let rate = 0;
