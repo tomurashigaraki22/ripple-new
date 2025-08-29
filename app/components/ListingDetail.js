@@ -246,6 +246,10 @@ const getPaymentAmount = (usdPrice, chainType) => {
       if (chainType === 'xrpl') walletForPayment = xrplWallet
       else if (chainType === 'evm') walletForPayment = getSigner
       else if (chainType === 'ethereum') walletForPayment = getSigner
+      else if (chainType === 'solana' || chainType === 'xrpb-sol') {
+        // ✅ From Phantom / Solana context
+        walletForPayment = { connection, publicKey, connected, sendTransaction };
+      }
       else throw new Error(`Unsupported chain type: ${chainType}`)
 
       setPaymentResult({ message: "Sending payment..." })
