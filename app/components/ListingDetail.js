@@ -22,6 +22,7 @@ export default function ListingDetail({ listing }) {
   const [quantity, setQuantity] = useState(1)
   const [xrpbPrice, setXrpbPrice] = useState(null)
   const [orderProcessing, setOrderProcessing] = useState(false)
+  const [solPrice, setsolPrice] = useState(null)
   const [ethPrice, setEthPrice] = useState(null)
 
   const { user } = useAuth()
@@ -87,7 +88,22 @@ export default function ListingDetail({ listing }) {
         console.error(err)
       }
     }
+    const fetchSolanaPriceUSD = async () => {
+      try {
+        const res = await fetch(
+          "https://api.coingecko.com/api/v3/coins/solana?tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false"
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        setsolPrice(json.market_data.current_price.usd)
+        return json.market_data.current_price.usd;
+      } catch (err) {
+        console.error("❌ Failed to fetch SOL price:", err);
+        return null;
+      }
+    };
     fetchPrices()
+    fetchSolanaPriceUSD()
   }, [])
   
 
@@ -161,32 +177,41 @@ export default function ListingDetail({ listing }) {
   }
 
   // Returns the XRPB amount needed for a listing depending on the chain
-  const getPaymentAmount = (usdPrice, chainType) => {
-    if (!usdPrice || isNaN(usdPrice) || usdPrice <= 0) return 0;
-  
-    let rate = 0;
-  
-    switch (chainType) {
-      case "solana":
-        rate = xrpbPrices.solana
-        break
-      case "xrpl":
-        rate = xrpbPrices.xrpl
-        break
-      case "evm":
-      case "xrpl_evm":
-        rate = xrpbPrices.xrplEvm
-        break
-      case "ethereum":
-        rate = ethPrice
-        break
-      default:
-        console.warn(`Unsupported chain type: ${chainType}`)
-        rate = 1
+// Fetch Solana price from CoinGecko
+
+
+const getPaymentAmount = async (usdPrice, chainType) => {
+  if (!usdPrice || isNaN(usdPrice) || usdPrice <= 0) return 0;
+
+  let rate = 0;
+
+  switch (chainType) {
+    case "solana": {
+      // Fetch live SOL price from CoinGecko
+      rate = solPrice
+      break;
     }
-  
-    return usdPrice / rate
+    case "xrpb-sol":
+      rate = xrpbPrices.solana;
+      break;
+    case "xrpl":
+      rate = xrpbPrices.xrpl;
+      break;
+    case "evm":
+    case "xrpl_evm":
+      rate = xrpbPrices.xrplEvm;
+      break;
+    case "ethereum":
+      rate = ethPrice;
+      break;
+    default:
+      console.warn(`Unsupported chain type: ${chainType}`);
+      rate = 1;
   }
+
+  return usdPrice / rate;
+};
+
 
   const handlePaymentConfirm = async () => {
     if (!user) {
