@@ -21,6 +21,8 @@ export default function ListingDetail({ listing }) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [xrpbPrice, setXrpbPrice] = useState(null)
+  const [validationError, setValidationError] = useState("");
+
   const [orderProcessing, setOrderProcessing] = useState(false)
   const [solPrice, setsolPrice] = useState(null)
   const [ethPrice, setEthPrice] = useState(null)
@@ -133,19 +135,82 @@ export default function ListingDetail({ listing }) {
   //   console.log("Listing: ", listing)
   // }, [listing])
 
-  const handleShippingSubmit = () => {
-    // Validate shipping info
-    const requiredFields = ['address', 'city', 'state', 'zipCode', 'country', 'phone']
-    const missingFields = requiredFields.filter(field => !shippingInfo[field]?.trim())
-    
+  const handleShippingSubmit = async () => {
+    // ✅ Step 1: Local validation
+    const requiredFields = ['address', 'city', 'state', 'zipCode', 'country', 'phone'];
+    const missingFields = requiredFields.filter(field => !shippingInfo[field]?.trim());
+  
     if (missingFields.length > 0) {
-      alert(`Please fill in all required fields: ${missingFields.join(', ')}`)
-      return
+      alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      return;
     }
-    
-    setshowShippingForm(false)
-    setShowPaymentModal(true)
-  }
+  
+    try {
+      // ✅ Step 2: Call ShipEngine API for validation
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL; // must end with /v1
+      const response = await fetch(`${baseUrl}/addresses/validate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "API-Key": process.env.NEXT_PUBLIC_SHIPENGINE_API_KEY,
+        },
+        body: JSON.stringify([
+          {
+            address_line1: shippingInfo.address,
+            city_locality: shippingInfo.city,
+            state_province: shippingInfo.state,
+            postal_code: shippingInfo.zipCode,
+            country_code: shippingInfo.country,
+          },
+        ]),
+      });
+
+      if (validationResult.status !== "verified") {
+        setValidationError("Address could not be verified. Please check your details.");
+        return;
+      }
+      
+
+      
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to validate address");
+      }
+  
+      const [validationResult] = data;
+  
+      if (validationResult.status === "verified" || validationResult.status === "unverified") {
+        // ✅ ShipEngine may suggest corrections
+        const suggested = validationResult.matched_address || validationResult.normalized_address;
+  
+        if (suggested) {
+          // Update form fields with validated/corrected values
+          setShippingInfo(prev => ({
+            ...prev,
+            address: suggested.address_line1 || prev.address,
+            city: suggested.city_locality || prev.city,
+            state: suggested.state_province || prev.state,
+            zipCode: suggested.postal_code || prev.zipCode,
+            country: suggested.country_code || prev.country,
+          }));
+        }
+  
+        // If fully verified → proceed
+        if (validationResult.status === "verified") {
+          setshowShippingForm(false);
+          setShowPaymentModal(true);
+        } 
+      } else {
+        alert("Invalid address. Please double-check your details.");
+      }
+    } catch (err) {
+      console.error("Validation Error:", err);
+      alert("Something went wrong while validating the address. Please try again.");
+    }
+  };
+  
 
   // Build available payment options dynamically
 
@@ -622,7 +687,7 @@ const getPaymentAmount = (usdPrice, chainType) => {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50">
           <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
             <h3 className="text-xl font-semibold text-white mb-4">Shipping Information</h3>
-  
+
             <div className="space-y-4">
               <input
                 type="text"
@@ -631,7 +696,7 @@ const getPaymentAmount = (usdPrice, chainType) => {
                 onChange={(e) => setShippingInfo({ ...shippingInfo, address: e.target.value })}
                 className="w-full px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-400"
               />
-  
+
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="text"
@@ -648,7 +713,7 @@ const getPaymentAmount = (usdPrice, chainType) => {
                   className="px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-400"
                 />
               </div>
-  
+
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="text"
@@ -665,7 +730,7 @@ const getPaymentAmount = (usdPrice, chainType) => {
                   className="px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-400"
                 />
               </div>
-  
+
               <input
                 type="tel"
                 placeholder="Phone Number"
@@ -673,8 +738,13 @@ const getPaymentAmount = (usdPrice, chainType) => {
                 onChange={(e) => setShippingInfo({ ...shippingInfo, phone: e.target.value })}
                 className="w-full px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-400"
               />
+
+              {/* 🔴 Show validation error if any */}
+              {validationError && (
+                <p className="text-red-500 text-sm mt-2">{validationError}</p>
+              )}
             </div>
-  
+
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setshowShippingForm(false)}
@@ -692,7 +762,7 @@ const getPaymentAmount = (usdPrice, chainType) => {
           </div>
         </div>
       )}
-  
+
       {/* ---------------------------
           Payment Modal (glassy + blurred backdrop)
           Renders ONLY when showPaymentModal === true
