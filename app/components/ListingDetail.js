@@ -152,7 +152,7 @@ export default function ListingDetail({ listing }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "API-Key": process.env.NEXT_PUBLIC_SHIPENGINE_API_KEY,
+          "API-Key": process.env.NEXT_PUBLIC_SHIPSTATION_API_KEY_TEST,
         },
         body: JSON.stringify([
           {
