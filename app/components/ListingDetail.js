@@ -26,6 +26,10 @@ export default function ListingDetail({ listing }) {
   const [orderProcessing, setOrderProcessing] = useState(false)
   const [solPrice, setsolPrice] = useState(null)
   const [ethPrice, setEthPrice] = useState(null)
+  
+  // Add shipping state variables
+  const [shippingRates, setShippingRates] = useState([])
+  const [selectedShippingCost, setSelectedShippingCost] = useState(0)
 
   const { user } = useAuth()
   const [priceLoadingStates, setPriceLoadingStates]= useState({
@@ -120,6 +124,93 @@ export default function ListingDetail({ listing }) {
     country: '',
     phone: ''
   })
+  const [availableCountries, setAvailableCountries] = useState([])
+  const [availableStates, setAvailableStates] = useState({})
+  const [availableCities, setAvailableCities] = useState([])
+  const [availableZipCodes, setAvailableZipCodes] = useState([])
+  const [loadingStates, setLoadingStates] = useState(false)
+  const [loadingCities, setLoadingCities] = useState(false)
+  const [loadingZipCodes, setLoadingZipCodes] = useState(false)
+
+  // Load countries on component mount
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const response = await fetch('/api/shipengine/countries');
+        const data = await response.json();
+        setAvailableCountries(data.countries || []);
+      } catch (error) {
+        console.error('Failed to load countries:', error);
+      }
+    };
+    fetchCountries();
+  }, []);
+
+  // Load states when country changes
+  const handleCountryChange = async (countryCode) => {
+    setShippingInfo(prev => ({ ...prev, country: countryCode, state: '', city: '', zipCode: '' }));
+    
+    if (countryCode) {
+      setLoadingStates(true);
+      try {
+        const response = await fetch(`/api/shipengine/countries?country=${countryCode}`);
+        const data = await response.json();
+        setAvailableStates(data.states || {});
+      } catch (error) {
+        console.error('Failed to load states:', error);
+        setAvailableStates({});
+      } finally {
+        setLoadingStates(false);
+      }
+    } else {
+      setAvailableStates({});
+    }
+    setAvailableCities([]);
+    setAvailableZipCodes([]);
+  };
+
+  // Add new function to handle state change
+  const handleStateChange = async (stateCode) => {
+    setShippingInfo(prev => ({ ...prev, state: stateCode, city: '', zipCode: '' }));
+    
+    if (stateCode && shippingInfo.country) {
+      setLoadingCities(true);
+      try {
+        const response = await fetch(`/api/shipengine/countries?country=${shippingInfo.country}&state=${stateCode}`);
+        const data = await response.json();
+        setAvailableCities(data.cities || []);
+      } catch (error) {
+        console.error('Failed to load cities:', error);
+        setAvailableCities([]);
+      } finally {
+        setLoadingCities(false);
+      }
+    } else {
+      setAvailableCities([]);
+    }
+    setAvailableZipCodes([]);
+  };
+
+  // Add new function to handle city change
+  const handleCityChange = async (cityName) => {
+    setShippingInfo(prev => ({ ...prev, city: cityName, zipCode: '' }));
+    
+    if (cityName && shippingInfo.state && shippingInfo.country) {
+      setLoadingZipCodes(true);
+      try {
+        const response = await fetch(`/api/shipengine/countries?country=${shippingInfo.country}&state=${shippingInfo.state}&city=${encodeURIComponent(cityName)}`);
+        const data = await response.json();
+        setAvailableZipCodes(data.zipCodes || []);
+      } catch (error) {
+        console.error('Failed to load zip codes:', error);
+        setAvailableZipCodes([]);
+      } finally {
+        setLoadingZipCodes(false);
+      }
+    } else {
+      setAvailableZipCodes([]);
+    }
+  };
   const [showPaymentModal, setShowPaymentModal] = useState(false)
 
   function formatCategory(category) {
@@ -146,13 +237,11 @@ export default function ListingDetail({ listing }) {
     }
   
     try {
-      // ✅ Step 2: Call ShipEngine API for validation
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL; // must end with /v1
-      const response = await fetch(`${baseUrl}/addresses/validate`, {
-        method: "POST",
+      // ✅ Step 2: Call our API route for address validation
+      const response = await fetch('/api/shipengine/validate-address', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "API-Key": process.env.NEXT_PUBLIC_SHIPSTATION_API_KEY_TEST,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify([
           {
@@ -161,53 +250,136 @@ export default function ListingDetail({ listing }) {
             state_province: shippingInfo.state,
             postal_code: shippingInfo.zipCode,
             country_code: shippingInfo.country,
+            phone: shippingInfo.phone,
           },
         ]),
       });
 
-      if (validationResult.status !== "verified") {
-        setValidationError("Address could not be verified. Please check your details.");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to validate address');
+      }
+
+      const data = await response.json();
+      const [validationResult] = data;
+
+      if (validationResult.status !== 'verified') {
+        setValidationError('Address could not be verified. Please check your details.');
         return;
       }
-      
 
-      
+      // ✅ Step 3: Calculate shipping costs with UPS using listing.address
+      await calculateShippingCosts(validationResult.matched_address);
+
+      // ✅ ShipEngine may suggest corrections
+      const suggested = validationResult.matched_address || validationResult.normalized_address;
   
-      const data = await response.json();
-  
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to validate address");
+      if (suggested) {
+        // Update form fields with validated/corrected values
+        setShippingInfo(prev => ({
+          ...prev,
+          address: suggested.address_line1 || prev.address,
+          city: suggested.city_locality || prev.city,
+          state: suggested.state_province || prev.state,
+          zipCode: suggested.postal_code || prev.zipCode,
+          country: suggested.country_code || prev.country,
+        }));
       }
   
-      const [validationResult] = data;
-  
-      if (validationResult.status === "verified" || validationResult.status === "unverified") {
-        // ✅ ShipEngine may suggest corrections
-        const suggested = validationResult.matched_address || validationResult.normalized_address;
-  
-        if (suggested) {
-          // Update form fields with validated/corrected values
-          setShippingInfo(prev => ({
-            ...prev,
-            address: suggested.address_line1 || prev.address,
-            city: suggested.city_locality || prev.city,
-            state: suggested.state_province || prev.state,
-            zipCode: suggested.postal_code || prev.zipCode,
-            country: suggested.country_code || prev.country,
-          }));
-        }
-  
-        // If fully verified → proceed
-        if (validationResult.status === "verified") {
-          setshowShippingForm(false);
-          setShowPaymentModal(true);
-        } 
-      } else {
-        alert("Invalid address. Please double-check your details.");
+      // If fully verified → proceed
+      if (validationResult.status === 'verified') {
+        setshowShippingForm(false);
+        setShowPaymentModal(true);
       }
     } catch (err) {
-      console.error("Validation Error:", err);
-      alert("Something went wrong while validating the address. Please try again.");
+      console.error('Validation Error:', err);
+      alert('Something went wrong while validating the address. Please try again.');
+    }
+  };
+
+  // ✅ Updated function to calculate shipping costs using listing.shipping_from
+  const calculateShippingCosts = async (validatedAddress) => {
+    try {
+      // Use listing.shipping_from for shipFrom
+      const shipFrom = {
+        name: listing.seller?.name || 'Store',
+        address_line1: listing.shipping_from?.street || 'Default Street',
+        city_locality: listing.shipping_from?.city || 'Default City',
+        state_province: listing.shipping_from?.state || 'CA', // Must be 2 characters
+        postal_code: listing.shipping_from?.zipCode || '90210',
+        country_code: listing.shipping_from?.country || 'US',
+        phone: listing.shipping_from?.phone || listing.seller?.phone || '1234567890',
+      };
+
+      // Define package dimensions (you might want to get this from the listing)
+      const packages = [
+        {
+          weight: {
+            value: listing.weight || 1.0,
+            unit: 'pound',
+          },
+          dimensions: {
+            unit: 'inch',
+            length: listing.dimensions?.length || 10,
+            width: listing.dimensions?.width || 8,
+            height: listing.dimensions?.height || 6,
+          },
+        },
+      ];
+
+      const response = await fetch('/api/shipengine/calculate-shipping', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          shipFrom,
+          shipTo: validatedAddress,
+          packages,
+          carrierIds: ['se-3051222'], // UPS carrier ID
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || errorData.error || 'Failed to calculate shipping');
+      }
+
+      const rates = await response.json();
+      console.log('Shipping rates:', rates);
+      
+      if (rates.rate_response && rates.rate_response.rates && rates.rate_response.rates.length > 0) {
+        const availableRates = rates.rate_response.rates;
+        setShippingRates(availableRates);
+        
+        // Select shipping rate based on user requirements
+        let selectedRate;
+        if (availableRates.length === 1) {
+          // If only one rate is available, use that one
+          selectedRate = availableRates[0];
+        } else {
+          // If multiple rates are available, use the most expensive one
+          selectedRate = availableRates.reduce((prev, current) => {
+            return (parseFloat(current.shipping_amount.amount) > parseFloat(prev.shipping_amount.amount)) ? current : prev;
+          });
+        }
+        
+        // Store the selected shipping cost in USD
+        const shippingCostUSD = parseFloat(selectedRate.shipping_amount.amount);
+        setSelectedShippingCost(shippingCostUSD);
+        
+        console.log(`Selected shipping rate: $${shippingCostUSD} USD (${selectedRate.service_type})`);
+        
+        return rates;
+      } else {
+        throw new Error('No shipping rates available for the selected locations');
+      }
+      
+    } catch (err) {
+      console.error('Shipping calculation error:', err);
+      // ✅ Show error to user and prevent proceeding
+      alert(`Shipping Error: ${err.message}`);
+      throw err; // Re-throw to prevent further processing
     }
   };
   
@@ -245,14 +417,16 @@ export default function ListingDetail({ listing }) {
 // Fetch Solana price from CoinGecko
 
 
-const getPaymentAmount = (usdPrice, chainType) => {
+const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
   if (!usdPrice || isNaN(usdPrice) || usdPrice <= 0) return 0;
+
+  // Add shipping cost to the USD price if includeShipping is true
+  const totalUsdPrice = includeShipping ? usdPrice + selectedShippingCost : usdPrice;
 
   let rate = 0;
 
   switch (chainType) {
     case "solana": {
-      // Fetch live SOL price from CoinGecko
       rate = solPrice
       break;
     }
@@ -274,7 +448,7 @@ const getPaymentAmount = (usdPrice, chainType) => {
       rate = 1;
   }
 
-  return usdPrice / rate;
+  return totalUsdPrice / rate;
 };
 
 
@@ -689,55 +863,115 @@ const getPaymentAmount = (usdPrice, chainType) => {
             <h3 className="text-xl font-semibold text-white mb-4">Shipping Information</h3>
 
             <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Street Address"
-                value={shippingInfo.address}
-                onChange={(e) => setShippingInfo({ ...shippingInfo, address: e.target.value })}
-                className="w-full px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-400"
-              />
-
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  placeholder="City"
-                  value={shippingInfo.city}
-                  onChange={(e) => setShippingInfo({ ...shippingInfo, city: e.target.value })}
-                  className="px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-400"
-                />
-                <input
-                  type="text"
-                  placeholder="State"
-                  value={shippingInfo.state}
-                  onChange={(e) => setShippingInfo({ ...shippingInfo, state: e.target.value })}
-                  className="px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-400"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  placeholder="ZIP Code"
-                  value={shippingInfo.zipCode}
-                  onChange={(e) => setShippingInfo({ ...shippingInfo, zipCode: e.target.value })}
-                  className="px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Country"
+              {/* Country Selection - First */}
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-300">Country *</label>
+                <select
                   value={shippingInfo.country}
-                  onChange={(e) => setShippingInfo({ ...shippingInfo, country: e.target.value })}
-                  className="px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-400"
-                />
+                  onChange={(e) => handleCountryChange(e.target.value)}
+                  className="w-full px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white"
+                  required
+                >
+                  <option value="">Select Country</option>
+                  {availableCountries.map(country => (
+                    <option key={country.code} value={country.code}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <input
-                type="tel"
-                placeholder="Phone Number"
-                value={shippingInfo.phone}
-                onChange={(e) => setShippingInfo({ ...shippingInfo, phone: e.target.value })}
-                className="w-full px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-400"
-              />
+              {/* State Selection - Only show after country is selected */}
+              {shippingInfo.country && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-300">State/Province *</label>
+                  <select
+                    value={shippingInfo.state}
+                    onChange={(e) => handleStateChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white"
+                    required
+                    disabled={loadingStates}
+                  >
+                    <option value="">{loadingStates ? 'Loading...' : 'Select State/Province'}</option>
+                    {Object.entries(availableStates).map(([code, name]) => (
+                      <option key={code} value={code}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* City Selection - Only show after state is selected */}
+              {shippingInfo.country && shippingInfo.state && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-300">City *</label>
+                  <select
+                    value={shippingInfo.city}
+                    onChange={(e) => handleCityChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white"
+                    required
+                    disabled={loadingCities}
+                  >
+                    <option value="">{loadingCities ? 'Loading...' : 'Select City'}</option>
+                    {availableCities.map(city => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* ZIP Code Selection - Only show after city is selected */}
+              {shippingInfo.country && shippingInfo.state && shippingInfo.city && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-300">ZIP/Postal Code *</label>
+                  <select
+                    value={shippingInfo.zipCode}
+                    onChange={(e) => setShippingInfo(prev => ({ ...prev, zipCode: e.target.value }))}
+                    className="w-full px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white"
+                    required
+                    disabled={loadingZipCodes}
+                  >
+                    <option value="">{loadingZipCodes ? 'Loading...' : 'Select ZIP/Postal Code'}</option>
+                    {availableZipCodes.map(zipCode => (
+                      <option key={zipCode} value={zipCode}>
+                        {zipCode}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Rest of the form - only show after all location fields are selected */}
+              {shippingInfo.country && shippingInfo.state && shippingInfo.city && shippingInfo.zipCode && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-300">Address *</label>
+                    <input
+                      type="text"
+                      placeholder="Street Address"
+                      value={shippingInfo.address}
+                      onChange={(e) => setShippingInfo(prev => ({ ...prev, address: e.target.value }))}
+                      className="w-full px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-400"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-300">Phone *</label>
+                    <input
+                      type="tel"
+                      placeholder="Phone Number"
+                      value={shippingInfo.phone}
+                      onChange={(e) => setShippingInfo(prev => ({ ...prev, phone: e.target.value }))}
+                      className="w-full px-3 py-2 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-400"
+                      required
+                    />
+                  </div>
+                </>
+              )}
 
               {/* 🔴 Show validation error if any */}
               {validationError && (
@@ -755,8 +989,9 @@ const getPaymentAmount = (usdPrice, chainType) => {
               <button
                 onClick={handleShippingSubmit}
                 className="flex-1 px-4 py-2 bg-[#39FF14] text-black rounded-lg hover:bg-[#39FF14]/90"
+                disabled={!shippingInfo.country || !shippingInfo.state || !shippingInfo.address || !shippingInfo.city || !shippingInfo.zipCode || !shippingInfo.phone}
               >
-                Continue
+                Validate & Continue
               </button>
             </div>
           </div>
@@ -929,34 +1164,88 @@ const getPaymentAmount = (usdPrice, chainType) => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-300">Shipping Fee:</span>
-                      <span className="text-white">$10</span>
+                      <span className="text-white">${selectedShippingCost.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-300">Total USD:</span>
-                      <span className="text-white">${(parseFloat(listing.price) + 10).toFixed(2)}</span>
+                      <span className="text-white">${(parseFloat(listing.price) + selectedShippingCost).toFixed(2)}</span>
                     </div>
+                    
+                    {/* Dynamic currency price based on selected payment method */}
                     <div className="flex justify-between">
-                      <span className="text-gray-300">XRPB Price:</span>
+                      <span className="text-gray-300">
+                        {selectedPaymentMethod.type === 'ethereum' ? 'ETH Price:' :
+                         selectedPaymentMethod.type === 'solana' ? 'SOL Price:' :
+                         selectedPaymentMethod.type === 'xrpb-sol' ? 'XRPB-SOL Price:' :
+                         selectedPaymentMethod.type === 'xrpl' ? 'XRPL Price:' :
+                         'XRPB Price:'}
+                      </span>
                       <span className="text-[#39FF14]">
-                        {xrpbPrice
-                          ? getPaymentAmount(parseFloat(listing.price) + 10, selectedPaymentMethod.type).toFixed(6)
-                          : "N/A"}
+                        {(() => {
+                          const amount = getPaymentAmount(parseFloat(listing.price), selectedPaymentMethod.type, true);
+                          const currency = selectedPaymentMethod.type === 'ethereum' ? 'ETH' :
+                                         selectedPaymentMethod.type === 'solana' ? 'SOL' :
+                                         selectedPaymentMethod.type === 'xrpb-sol' ? 'XRPB-SOL' :
+                                         selectedPaymentMethod.type === 'xrpl' ? 'XRP' :
+                                         'XRPB';
+                          return amount ? `${amount.toFixed(6)} ${currency}` : "N/A";
+                        })()} 
                       </span>
                     </div>
-                    ...
+                    
+                    {/* Show additional info based on payment method */}
+                    {selectedPaymentMethod.type === 'ethereum' && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-400">Network:</span>
+                        <span className="text-gray-300">Ethereum Mainnet</span>
+                      </div>
+                    )}
+                    
+                    {selectedPaymentMethod.type === 'evm' && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-400">Network:</span>
+                        <span className="text-gray-300">XRPL EVM</span>
+                      </div>
+                    )}
+                    
+                    {(selectedPaymentMethod.type === 'solana' || selectedPaymentMethod.type === 'xrpb-sol') && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-400">Network:</span>
+                        <span className="text-gray-300">Solana</span>
+                      </div>
+                    )}
+                    
+                    {selectedPaymentMethod.type === 'xrpl' && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-400">Network:</span>
+                        <span className="text-gray-300">XRPL</span>
+                      </div>
+                    )}
+                    
+                    {/* Service fee calculation */}
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-400">Service Fee:</span>
+                      <span className="text-gray-300">
+                        {user.membership_tier_id === 1 ? '3.5%' :
+                         user.membership_tier_id === 2 ? '2.5%' : '1.5%'}
+                      </span>
+                    </div>
+                    
                     <div className="flex justify-between font-semibold border-t border-gray-600 pt-2">
                       <span className="text-gray-300">Total:</span>
                       <span className="text-[#39FF14]">
-                        {(
-                          getPaymentAmount(parseFloat(listing.price) + 10, selectedPaymentMethod.type) *
-                          (1 +
-                            (user.membership_tier_id === 1
-                              ? 0.035
-                              : user.membership_tier_id === 2
-                              ? 0.025
-                              : 0.015))
-                        ).toFixed(6)}{' '}
-                        XRPB
+                        {(() => {
+                          const baseAmount = getPaymentAmount(parseFloat(listing.price), selectedPaymentMethod.type, true);
+                          const serviceFee = user.membership_tier_id === 1 ? 0.035 :
+                                            user.membership_tier_id === 2 ? 0.025 : 0.015;
+                          const totalAmount = baseAmount * (1 + serviceFee);
+                          const currency = selectedPaymentMethod.type === 'ethereum' ? 'ETH' :
+                                         selectedPaymentMethod.type === 'solana' ? 'SOL' :
+                                         selectedPaymentMethod.type === 'xrpb-sol' ? 'XRPB-SOL' :
+                                         selectedPaymentMethod.type === 'xrpl' ? 'XRP' :
+                                         'XRPB';
+                          return `${totalAmount.toFixed(6)} ${currency}`;
+                        })()} 
                       </span>
                     </div>
                   </div>

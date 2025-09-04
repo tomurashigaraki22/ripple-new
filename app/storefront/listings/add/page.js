@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ArrowLeft, Upload, X, Plus, Trash2 } from "lucide-react"
+import { ArrowLeft, Upload, X, Plus, Trash2, Loader2 } from "lucide-react"
 import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card"
@@ -32,6 +32,15 @@ export default function AddListingPage() {
       worldwide: true,
       cost: 0,
     },
+    // Add shipping address for physical items
+    shippingAddress: {
+      country: "",
+      state: "",
+      city: "",
+      zipCode: "",
+      street: "",
+      phone: "",
+    },
   })
 
   const [toggleSections, setToggleSections] = useState({
@@ -48,6 +57,192 @@ export default function AddListingPage() {
   const [uploadedImages, setUploadedImages] = useState([])
   const router = useRouter()
   const [isUploading, setIsUploading] = useState(false)
+  // Add state for shipping address dropdowns
+  const [availableCountries, setAvailableCountries] = useState([])
+  const [availableStates, setAvailableStates] = useState([])
+  const [availableCities, setAvailableCities] = useState([])
+  const [availableZipCodes, setAvailableZipCodes] = useState([])
+  
+  // Add loading states
+  const [loadingStates, setLoadingStates] = useState({
+    countries: false,
+    states: false,
+    cities: false,
+    zipCodes: false
+  })
+
+  // Fetch countries on component mount
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const response = await fetch('/api/shipengine/countries')
+        const data = await response.json()
+        setAvailableCountries(data.countries || [])
+      } catch (error) {
+        console.error('Error fetching countries:', error)
+      }
+    }
+    fetchCountries()
+  }, [])
+
+  // Handle country change with loading
+  const handleCountryChange = async (countryCode) => {
+    setFormData(prev => ({
+      ...prev,
+      shippingAddress: {
+        ...prev.shippingAddress,
+        country: countryCode,
+        state: '',
+        city: '',
+        zipCode: ''
+      }
+    }))
+
+    // Reset dependent dropdowns
+    setAvailableStates([])
+    setAvailableCities([])
+    setAvailableZipCodes([])
+
+    if (countryCode) {
+      setLoadingStates(prev => ({ ...prev, states: true }))
+      try {
+        const response = await fetch(`/api/shipengine/countries?country=${countryCode}`)
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        const data = await response.json()
+        console.log('Fetched states:', data.states)
+        
+        // Transform states - if it's an object, convert to array with proper keys
+        let statesArray = []
+        if (Array.isArray(data.states)) {
+          statesArray = data.states
+        } else if (data.states && typeof data.states === 'object') {
+          statesArray = Object.entries(data.states).map(([code, name]) => ({
+            code: code,
+            name: name
+          }))
+        }
+        
+        console.log('Transformed states:', statesArray)
+        setAvailableStates(statesArray)
+      } catch (error) {
+        console.error('Error fetching states:', error)
+        setAvailableStates([]) // Ensure it's always an array on error
+      } finally {
+        setLoadingStates(prev => ({ ...prev, states: false }))
+      }
+    }
+  }
+
+  // Handle state change with loading
+  const handleStateChange = async (stateCode) => {
+    setFormData(prev => ({
+      ...prev,
+      shippingAddress: {
+        ...prev.shippingAddress,
+        state: stateCode,
+        city: '',
+        zipCode: ''
+      }
+    }))
+
+    // Reset dependent dropdowns
+    setAvailableCities([])
+    setAvailableZipCodes([])
+
+    if (stateCode && formData.shippingAddress.country) {
+      setLoadingStates(prev => ({ ...prev, cities: true }))
+      try {
+        const response = await fetch(`/api/shipengine/countries?country=${formData.shippingAddress.country}&state=${stateCode}`)
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        const data = await response.json()
+        console.log('Fetched cities:', data.cities)
+        
+        // Handle cities - they might be an array or object
+        let citiesArray = []
+        if (Array.isArray(data.cities)) {
+          citiesArray = data.cities
+        } else if (data.cities && typeof data.cities === 'object') {
+          // If cities come as object, transform them to array with unique keys
+          citiesArray = Object.entries(data.cities).map(([code, name]) => ({
+            code: code,
+            name: name
+          }))
+        }
+        
+        console.log('Transformed cities:', citiesArray)
+        setAvailableCities(citiesArray)
+      } catch (error) {
+        console.error('Error fetching cities:', error)
+        setAvailableCities([]) // Ensure it's always an array on error
+      } finally {
+        setLoadingStates(prev => ({ ...prev, cities: false }))
+      }
+    }
+  }
+
+  // Handle city change with loading
+  const handleCityChange = async (cityName) => {
+    setFormData(prev => ({
+      ...prev,
+      shippingAddress: {
+        ...prev.shippingAddress,
+        city: cityName,
+        zipCode: ''
+      }
+    }))
+
+    // Reset zip codes
+    setAvailableZipCodes([])
+
+    if (cityName && formData.shippingAddress.country && formData.shippingAddress.state) {
+      setLoadingStates(prev => ({ ...prev, zipCodes: true }))
+      try {
+        const response = await fetch(`/api/shipengine/countries?country=${formData.shippingAddress.country}&state=${formData.shippingAddress.state}&city=${cityName}`)
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        const data = await response.json()
+        console.log('Fetched zip codes:', data.zipCodes)
+        
+        // Transform zip codes - if it's an object, convert to array with proper keys
+        let zipCodesArray = []
+        if (Array.isArray(data.zipCodes)) {
+          zipCodesArray = data.zipCodes
+        } else if (data.zipCodes && typeof data.zipCodes === 'object') {
+          zipCodesArray = Object.entries(data.zipCodes).map(([code, name]) => ({
+            code: code,
+            name: name
+          }))
+        }
+        
+        console.log('Transformed zip codes:', zipCodesArray)
+        setAvailableZipCodes(zipCodesArray)
+      } catch (error) {
+        console.error('Error fetching zip codes:', error)
+        setAvailableZipCodes([]) // Ensure it's always an array on error
+      } finally {
+        setLoadingStates(prev => ({ ...prev, zipCodes: false }))
+      }
+    }
+  }
+
+  // Handle zip code change
+  const handleZipCodeChange = (zipCode) => {
+    setFormData(prev => ({
+      ...prev,
+      shippingAddress: {
+        ...prev.shippingAddress,
+        zipCode: zipCode
+      }
+    }))
+  }
+
+
+
 
   const categories = { NFT: ["Art","Mythical","Gaming","Music","Collectibles","Avatars","Virtual Land","Sports","Memes"], Physical: ["Electronics","Fashion","Jewelry","Collectibles","Art","Beauty","Food & Drink","Accessories","Toys","Furniture","Books","Home & Garden"], Digital: ["Art","Music","Software","Wellness","Education","Templates","Ebooks","Courses","3D Models","Photos","Fonts","Design Assets"] };
 
@@ -164,13 +359,23 @@ export default function AddListingPage() {
     }))
   }
 
+  const handleShippingAddressChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      shippingAddress: {
+        ...prev.shippingAddress,
+        [field]: value,
+      },
+    }))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
   
     try {
       const payload = {
         ...formData,
-        images: uploadedImages.map((img) => img.url), // Use Cloudinary URLs
+        images: uploadedImages.map((img) => img.url),
         tags: formData.tags.split(",").map((t) => t.trim()).filter(Boolean),
         isPhysical: formData.type === "physical" ? 1 : 0,
         is_auction: formData.listingType === "auction",
@@ -183,6 +388,15 @@ export default function AddListingPage() {
         shipping: { ...formData.shipping },
         variations: [...formData.variations],
         attributes: { ...formData.attributes },
+        // Include shipping address for physical items
+        address: formData.type === "physical" ? {
+          street: formData.shippingAddress.street,
+          city: formData.shippingAddress.city,
+          state: formData.shippingAddress.state,
+          zipCode: formData.shippingAddress.zipCode,
+          country: formData.shippingAddress.country,
+          phone: formData.shippingAddress.phone
+        } : undefined,
       };
   
       const token = localStorage.getItem("token");
@@ -202,7 +416,6 @@ export default function AddListingPage() {
       alert(err.message || "An error occurred while creating the listing");
     }
   };
-  
 
   return (
     <div className="min-h-screen bg-[#111111] text-white">
@@ -505,6 +718,196 @@ export default function AddListingPage() {
               </CardContent>
             </Card>
 
+            {formData.type === "physical" && (
+              <Card className="bg-[#1a1a1a] border-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-white">Shipping From Address</CardTitle>
+                  <p className="text-gray-400 text-sm">Enter the address where this item will be shipped from</p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Country Selection */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  Country <span className="text-red-500">*</span>
+                </label>
+                <Select 
+                  value={formData.shippingAddress.country} 
+                  onValueChange={handleCountryChange}
+                  disabled={loadingStates.countries}
+                >
+                  <SelectTrigger className="bg-[#1a1a1a] border-gray-700 text-white">
+                    <SelectValue placeholder="Select country" />
+                    {loadingStates.countries && <Loader2 className="h-4 w-4 animate-spin" />}
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                    {Array.isArray(availableCountries) && availableCountries.map((country) => (
+                      <SelectItem key={country.code} value={country.code} className="text-white hover:bg-gray-700">
+                        {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formData.shippingAddress.country && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Next: Select a state/province to see available cities
+                  </p>
+                )}
+              </div>
+
+                    {/* State/Province Selection */}
+              {formData.shippingAddress.country && (
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    State/Province <span className="text-red-500">*</span>
+                  </label>
+                  <Select 
+                    value={formData.shippingAddress.state} 
+                    onValueChange={handleStateChange}
+                    disabled={loadingStates.states}
+                  >
+                    <SelectTrigger className="bg-[#1a1a1a] border-gray-700 text-white">
+                      <SelectValue placeholder={loadingStates.states ? "Loading states..." : "Select state/province"} />
+                      {loadingStates.states && <Loader2 className="h-4 w-4 animate-spin" />}
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                      {Array.isArray(availableStates) && availableStates.map((state) => (
+                      <SelectItem key={state.code || state} value={state.code || state} className="text-white hover:bg-gray-700">
+                        {state.name || state}
+                      </SelectItem>
+                    ))}
+                    </SelectContent>
+                  </Select>
+                  {loadingStates.states && (
+                    <p className="text-xs text-blue-400 mt-1 flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Loading states...
+                    </p>
+                  )}
+                  {!loadingStates.states && availableStates.length === 0 && formData.shippingAddress.country && (
+                    <p className="text-xs text-yellow-400 mt-1">
+                      No states available for selected country
+                    </p>
+                  )}
+                  {formData.shippingAddress.state && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Next: Select a city to see available ZIP codes
+                    </p>
+                  )}
+                </div>
+              )}
+
+                    {/* City Selection */}
+              {formData.shippingAddress.state && (
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    City <span className="text-red-500">*</span>
+                  </label>
+                  <Select 
+                    value={formData.shippingAddress.city} 
+                    onValueChange={handleCityChange}
+                    disabled={loadingStates.cities}
+                  >
+                    <SelectTrigger className="bg-[#1a1a1a] border-gray-700 text-white">
+                      <SelectValue placeholder={loadingStates.cities ? "Loading cities..." : "Select city"} />
+                      {loadingStates.cities && <Loader2 className="h-4 w-4 animate-spin" />}
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                      {Array.isArray(availableCities) && availableCities.map((city) => (
+                        <SelectItem key={city.code || city} value={city.name || city} className="text-white hover:bg-gray-700">
+                          {city.name || city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {loadingStates.cities && (
+                    <p className="text-xs text-blue-400 mt-1 flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Loading cities...
+                    </p>
+                  )}
+                  {!loadingStates.cities && availableCities.length === 0 && formData.shippingAddress.state && (
+                    <p className="text-xs text-yellow-400 mt-1">
+                      No cities available for selected state
+                    </p>
+                  )}
+                </div>
+              )}
+
+                    {/* ZIP/Postal Code Selection */}
+              {formData.shippingAddress.city && (
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    ZIP/Postal Code <span className="text-red-500">*</span>
+                  </label>
+                  <Select 
+                    value={formData.shippingAddress.zipCode} 
+                    onValueChange={handleZipCodeChange}
+                    disabled={loadingStates.zipCodes}
+                  >
+                    <SelectTrigger className="bg-[#1a1a1a] border-gray-700 text-white">
+                      <SelectValue placeholder={loadingStates.zipCodes ? "Loading ZIP codes..." : "Select ZIP/Postal code"} />
+                      {loadingStates.zipCodes && <Loader2 className="h-4 w-4 animate-spin" />}
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                      {Array.isArray(availableZipCodes) && availableZipCodes.map((zipCode) => (
+                        <SelectItem key={zipCode.code || zipCode} value={zipCode.name || zipCode} className="text-white hover:bg-gray-700">
+                          {zipCode.name || zipCode}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {loadingStates.zipCodes && (
+                    <p className="text-xs text-blue-400 mt-1 flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Loading ZIP codes...
+                    </p>
+                  )}
+                  {!loadingStates.zipCodes && availableZipCodes.length === 0 && formData.shippingAddress.city && (
+                    <p className="text-xs text-yellow-400 mt-1">
+                      No ZIP codes available for selected city
+                    </p>
+                  )}
+                </div>
+              )}
+
+                    {/* Street Address */}
+                    {formData.shippingAddress.zipCode && (
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-white mb-2">
+                          Street Address <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          placeholder="Enter street address"
+                          value={formData.shippingAddress.street}
+                          onChange={(e) => handleShippingAddressChange("street", e.target.value)}
+                          className="bg-[#1a1a1a] border-gray-700 text-white"
+                          required
+                        />
+                      </div>
+                    )}
+
+                    {/* Phone Number */}
+                    {formData.shippingAddress.street && (
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-white mb-2">
+                          Phone Number <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          placeholder="Enter phone number"
+                          value={formData.shippingAddress.phone}
+                          onChange={(e) => handleShippingAddressChange("phone", e.target.value)}
+                          className="bg-[#1a1a1a] border-gray-700 text-white"
+                          required
+                        />
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+
             {/* Product Variations */}
             <Card className="bg-[#1a1a1a] border-gray-800">
               <CardHeader>
@@ -701,4 +1104,5 @@ export default function AddListingPage() {
       </div>
     </div>
   )
+
 }
