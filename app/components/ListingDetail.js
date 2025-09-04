@@ -358,9 +358,9 @@ export default function ListingDetail({ listing }) {
           // If only one rate is available, use that one
           selectedRate = availableRates[0];
         } else {
-          // If multiple rates are available, use the most expensive one
+          // If multiple rates are available, use the cheapest one
           selectedRate = availableRates.reduce((prev, current) => {
-            return (parseFloat(current.shipping_amount.amount) > parseFloat(prev.shipping_amount.amount)) ? current : prev;
+            return (parseFloat(current.shipping_amount.amount) < parseFloat(prev.shipping_amount.amount)) ? current : prev;
           });
         }
         
