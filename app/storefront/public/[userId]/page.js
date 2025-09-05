@@ -1,826 +1,670 @@
 "use client"
-import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
-import Link from "next/link"
-import {
-  Search,
-  Store,
-  Calendar,
-  Eye,
-  Package,
-  Star,
-  Award,
-  TrendingUp,
-  Heart,
-  Share2,
-  ExternalLink,
-  Music,
-  X,
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  ChevronLeft,
-  ChevronRight
-} from "lucide-react"
-import { useAuth } from "../../../contexts/AuthContext"
 
-export default function PublicStorefront() {
-  const params = useParams()
-  const { userId } = params
-  const {token} = useAuth()
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import PublicStorefrontSidebar from '../../../components/PublicStorefrontSidebar';
+import MusicPlayer from '../../../components/MusicPlayer';
+import GradientCustomizer from '../../../components/GradientCustomizer';
 
-  const [storefront, setStorefront] = useState(null)
-  const [allListings, setAllListings] = useState([]) // Store all listings
-  const [displayedListings, setDisplayedListings] = useState([]) // Currently displayed listings
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("")
-  const [viewMode, setViewMode] = useState("grid")
-  const [sortBy, setSortBy] = useState("newest")
-  const [storefrontSettings, setStorefrontSettings] = useState(null)
-  
-  // Frontend pagination state
-  const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 6
-  
-  // Enhanced music state
-  const [showMusicPanel, setShowMusicPanel] = useState(false)
-  const [currentTrack, setCurrentTrack] = useState(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [isMuted, setIsMuted] = useState(false)
-  const [volume, setVolume] = useState(0.5)
-  
-  // Enhanced background options
-  const [selectedBackground, setSelectedBackground] = useState({
-    id: 1,
-    name: "Neon Cyber",
-    class: "bg-gradient-to-br from-black via-purple-900/50 to-green-900/30",
-    overlay: "bg-black/40"
-  })
+const API_BASE_URL = 'https://ripple-flask-server.onrender.com';
 
-  const backgroundOptions = [
-    {
-      id: 1,
-      name: "Neon Cyber",
-      class: "bg-gradient-to-br from-black via-purple-900/50 to-green-900/30",
-      overlay: "bg-black/40"
-    },
-    {
-      id: 2,
-      name: "Electric Blue",
-      class: "bg-gradient-to-br from-blue-900 via-cyan-900/60 to-black",
-      overlay: "bg-blue-900/20"
-    },
-    {
-      id: 3,
-      name: "Sunset Glow",
-      class: "bg-gradient-to-br from-orange-900/80 via-red-900/60 to-black",
-      overlay: "bg-orange-900/30"
-    },
-    {
-      id: 4,
-      name: "Deep Ocean",
-      class: "bg-gradient-to-br from-indigo-900 via-blue-900/70 to-black",
-      overlay: "bg-indigo-900/25"
-    },
-    {
-      id: 5,
-      name: "Matrix Green",
-      class: "bg-gradient-to-br from-green-900/80 via-emerald-900/60 to-black",
-      overlay: "bg-green-900/30"
-    }
-  ]
-
-  // Enhanced music tracks
-  const backgroundTracks = [
-    { id: 1, name: "Cyberpunk Vibes", artist: "Neon Dreams", duration: "4:23", url: "https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC" },
-    { id: 2, name: "Digital Horizon", artist: "Synthwave Collective", duration: "3:45", url: "https://open.spotify.com/embed/track/1A2tKUQC4uLU6hMCjMI75M" },
-    { id: 3, name: "Glass Reflections", artist: "Future Bass", duration: "5:12", url: "https://open.spotify.com/embed/track/2tKUQC4uLU6hMCjMI75M1A" },
-    { id: 4, name: "Neon Nights", artist: "Cyber Sounds", duration: "4:08", url: "https://open.spotify.com/embed/track/3KUQCuLU6hMCjMI75M1A2t" }
-  ]
+const PublicStorefront = () => {
+  const { userId } = useParams();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState('home');
+  const [pagination, setPagination] = useState({
+  total: 0,
+  totalPages: 0,
+  currentPage: 1,
+  limit: 20,
+  hasMore: false,
+  hasPrevious: false
+});
+  const [gradientColors, setGradientColors] = useState({
+    primary: '#1a1a2e',
+    secondary: '#16213e',
+    accent: '#39FF14'
+  });
+  const [localGradientColors, setLocalGradientColors] = useState(null); // For local preview
+  const [userProfile, setUserProfile] = useState({
+    name: 'Dev Tomiwa',
+    title: 'FullStack Web, App and Web3 Developer',
+    bio: 'Passionate about creating innovative digital experiences and building meaningful connections through technology.',
+    avatar: '/logo.jpg',
+    coverImage: '/logo.jpg',
+    location: 'Port Harcourt, Nigeria',
+    joinedDate: 'July 2025',
+    totalSales: 156,
+    rating: 4.9,
+    followers: 2847
+  });
+  const [services, setServices] = useState([]);
+  const [socialLinks, setSocialLinks] = useState([]);
+  const [listings, setListings] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (userId) {
-      fetchStorefront()
-      fetchStorefrontSettings()
-    }
-  }, [userId])
-
-  // Update displayed listings when filters change
-  useEffect(() => {
-    updateDisplayedListings()
-  }, [allListings, searchTerm, selectedCategory, sortBy, currentPage])
-
-  // Fetch storefront customization settings
-  const fetchStorefrontSettings = async () => {
-    try {
-      const response = await fetch(`https://ripple-flask-server.onrender.com/storefront/me/settings/${userId}`)
-      if (response.ok) {
-        const data = await response.json()
-        setStorefrontSettings(data.settings)
-      }
-    } catch (error) {
-      console.error("Failed to fetch storefront settings:", error)
-    }
-  }
-
-  const fetchStorefront = async () => {
-    try {
-      setLoading(true)
-      const authToken = localStorage.getItem("token")
-      
-      const response = await fetch(`https://ripple-flask-server.onrender.com/storefront/listings`, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${authToken}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        
-        // Create mock storefront object
-        const mockStorefront = {
-          username: userId,
-          stats: {
-            totalListings: data.listings?.length || 0,
-            totalViews: data.listings?.reduce((sum, listing) => sum + (listing.views || 0), 0) || 0
+    const fetchStorefrontData = async () => {
+      try {
+        // Fetch user profile
+        const profileResponse = await fetch(`${API_BASE_URL}/storefronts_bp/profile/${userId}`);
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          if (profileData.success) {
+            setUserProfile(profileData.profile);
           }
         }
+
+        // Fetch services
+        const servicesResponse = await fetch(`${API_BASE_URL}/storefronts_bp/services/${userId}`);
+        if (servicesResponse.ok) {
+          const servicesData = await servicesResponse.json();
+          if (servicesData.success) {
+            setServices(servicesData.services);
+          }
+        }
+
+        // Fetch social links
+        const socialResponse = await fetch(`${API_BASE_URL}/storefronts_bp/social/${userId}`);
+        if (socialResponse.ok) {
+          const socialData = await socialResponse.json();
+          if (socialData.success) {
+            setSocialLinks(socialData.social_links);
+          }
+        }
+
+        // Fetch active theme
+        const themeResponse = await fetch(`${API_BASE_URL}/storefronts_bp/themes/${userId}`);
+        if (themeResponse.ok) {
+          const themeData = await themeResponse.json();
+          if (themeData.success && themeData.theme) {
+            setGradientColors({
+              primary: themeData.theme.primary_color,
+              secondary: themeData.theme.secondary_color,
+              accent: themeData.theme.accent_color
+            });
+          }
+        }
+
+        // Demo listings (client-side dummy data)
+        const demoListings = [
+          {
+            id: 1,
+            title: 'Premium Digital Art Collection',
+            price: 299.99,
+            image: '/logo.jpg',
+            category: 'Digital Art',
+            rating: 4.8,
+            sales: 45
+          },
+          {
+            id: 2,
+            title: 'Custom Web Development Service',
+            price: 1299.99,
+            image: '/logo.jpg',
+            category: 'Services',
+            rating: 5.0,
+            sales: 23
+          },
+          {
+            id: 3,
+            title: 'Photography Preset Pack',
+            price: 49.99,
+            image: '/logo.jpg',
+            category: 'Photography',
+            rating: 4.7,
+            sales: 89
+          }
+        ];
         
-        setStorefront(mockStorefront)
-        setAllListings(data.listings || [])
-      } else if (response.status === 404) {
-        setStorefront(null)
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching storefront data:', error);
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch storefront:", error)
-    } finally {
-      setLoading(false)
+    };
+
+    if (userId) {
+      fetchStorefrontData();
     }
-  }
+  }, [userId]);
 
-  // Filter, sort and paginate listings on frontend
-  const updateDisplayedListings = () => {
-    let filteredListings = [...allListings]
+  const gradientStyle = {
+    background: `linear-gradient(135deg, ${(localGradientColors || gradientColors).primary} 0%, ${(localGradientColors || gradientColors).secondary} 50%, ${(localGradientColors || gradientColors).primary} 100%)`,
+  };
 
-    // Apply search filter
-    if (searchTerm) {
-      filteredListings = filteredListings.filter(listing =>
-        listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        listing.description.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    }
+    const handleGradientChange = (newGradient) => {
+    setLocalGradientColors(newGradient);
+  };
 
-    // Apply category filter
-    if (selectedCategory) {
-      filteredListings = filteredListings.filter(listing => listing.category === selectedCategory)
-    }
-
-    // Apply sorting
-    filteredListings.sort((a, b) => {
-      switch (sortBy) {
-        case "newest":
-          return new Date(b.created_at) - new Date(a.created_at)
-        case "oldest":
-          return new Date(a.created_at) - new Date(b.created_at)
-        case "price-low":
-          return parseFloat(a.price) - parseFloat(b.price)
-        case "price-high":
-          return parseFloat(b.price) - parseFloat(a.price)
-        case "views":
-          return (b.views || 0) - (a.views || 0)
-        default:
-          return 0
-      }
-    })
-
-    // Apply pagination
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-    const endIndex = startIndex + ITEMS_PER_PAGE
-    const paginatedListings = filteredListings.slice(startIndex, endIndex)
-
-    setDisplayedListings(paginatedListings)
-  }
-
-  // Calculate total pages
-  const getTotalPages = () => {
-    let filteredCount = allListings.length
-
-    if (searchTerm) {
-      filteredCount = allListings.filter(listing =>
-        listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        listing.description.toLowerCase().includes(searchTerm.toLowerCase())
-      ).length
-    }
-
-    if (selectedCategory) {
-      filteredCount = allListings.filter(listing => {
-        const matchesSearch = !searchTerm || 
-          listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          listing.description.toLowerCase().includes(searchTerm.toLowerCase())
-        return matchesSearch && listing.category === selectedCategory
-      }).length
-    }
-
-    return Math.ceil(filteredCount / ITEMS_PER_PAGE)
-  }
-
-  // Pagination handlers
-  const goToPage = (page) => {
-    setCurrentPage(page)
-  }
-
-  const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1)
-    }
-  }
-
-  const goToNextPage = () => {
-    const totalPages = getTotalPages()
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1)
-    }
-  }
-
-  // Reset to first page when filters change
   useEffect(() => {
-    setCurrentPage(1)
-  }, [searchTerm, selectedCategory, sortBy])
-
-  const shareStorefront = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${storefront.username}'s Storefront`,
-          text: `Check out ${storefront.username}'s amazing listings!`,
-          url: window.location.href,
-        })
-      } catch (err) {
-        console.log("Error sharing:", err)
-      }
-    } else {
-      navigator.clipboard.writeText(window.location.href)
-    }
-  }
-
-  // Enhanced music controls
-  const playTrack = (track) => {
-    setCurrentTrack(track)
-    setIsPlaying(true)
-  }
-
-  const togglePlayPause = () => {
-    setIsPlaying(!isPlaying)
-  }
-
-  const toggleMute = () => {
-    setIsMuted(!isMuted)
-  }
-
-  const categories = [...new Set(allListings.map((listing) => listing.category))]
-
-  // Enhanced glassmorphism classes
-  const getGlassmorphismClasses = (intensity = 'medium', blur = 'md') => {
-    const intensityMap = {
-      'low': 'bg-white/5 bg-opacity-5',
-      'medium': 'bg-white/10 bg-opacity-10',
-      'high': 'bg-white/15 bg-opacity-15'
-    }
-    
-    const blurMap = {
-      'sm': 'backdrop-blur-sm',
-      'md': 'backdrop-blur-md',
-      'lg': 'backdrop-blur-lg',
-      'xl': 'backdrop-blur-xl'
-    }
-    
-    return `${intensityMap[intensity] || intensityMap.medium} ${blurMap[blur] || blurMap.md} border border-white/20 shadow-2xl`
-  }
-
-  // Enhanced Pagination Component
-  const PaginationComponent = () => {
-    const totalPages = getTotalPages()
-    if (totalPages <= 1) return null
-
-    const getPageNumbers = () => {
-      const pages = []
-      const maxVisiblePages = 5
-      
-      if (totalPages <= maxVisiblePages) {
-        for (let i = 1; i <= totalPages; i++) {
-          pages.push(i)
+    const fetchListings = async () => {
+        try {
+            // Extract userId from pathname
+            const pathSegments = window.location.pathname.split('/');
+            const userId = pathSegments[pathSegments.length - 1];
+            
+            if (!userId) {
+                console.error('User ID not found in pathname');
+                return;
+            }
+            
+            const response = await fetch(`${API_BASE_URL}/storefront/listings?user_id=${userId}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Handle the response data
+            if (data.listings) {
+                setListings(data.listings);
+                setPagination(data.pagination);
+            }
+            
+        } catch (error) {
+            console.error("Error fetching listings:", error);
         }
-      } else {
-        if (currentPage <= 3) {
-          for (let i = 1; i <= 4; i++) pages.push(i)
-          pages.push('...')
-          pages.push(totalPages)
-        } else if (currentPage >= totalPages - 2) {
-          pages.push(1)
-          pages.push('...')
-          for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i)
-        } else {
-          pages.push(1)
-          pages.push('...')
-          for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i)
-          pages.push('...')
-          pages.push(totalPages)
-        }
-      }
-      
-      return pages
-    }
+    };
+    
+    fetchListings();
+}, [])
 
+  const renderContent = () => {
+    switch (currentPage) {
+      case 'home':
+        return <HomePage userProfile={userProfile} listings={listings} />;
+      case 'about':
+        return <AboutPage userProfile={userProfile} />;
+      case 'portfolio':
+        return <PortfolioPage listings={listings} />;
+      case 'services':
+        return <ServicesPage services={services} />;
+      case 'contact':
+        return <ContactPage userProfile={userProfile} socialLinks={socialLinks} />;
+      default:
+        return <HomePage userProfile={userProfile} listings={listings} />;
+    }
+  };
+
+  if (isLoading) {
     return (
-      <div className={`${getGlassmorphismClasses('medium', 'lg')} p-6 rounded-2xl mt-12`}>
-        <div className="flex items-center justify-between">
-          <div className="text-gray-400 text-sm">
-            Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, allListings.length)} of {allListings.length} listings
+      <div className="min-h-screen flex items-center justify-center" style={gradientStyle}>
+        <div className="glass-effect p-8 rounded-2xl">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#39FF14] mx-auto"></div>
+          <p className="text-white mt-4 text-center">Loading storefront...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen" style={gradientStyle}>
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="lg:hidden fixed top-4 left-4 z-999999 glass-effect p-3 rounded-full text-white hover:text-[#39FF14] transition-all duration-300"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      {/* Sidebar */}
+      <PublicStorefrontSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        userProfile={userProfile}
+      />
+
+      {/* Main Content */}
+      <div className={`transition-all duration-300 ${sidebarOpen ? 'lg:ml-80' : 'lg:ml-20'} min-h-screen`}>
+        {/* Header */}
+        <header className="glass-effect-light p-6 m-4 rounded-2xl" style={{ position: 'relative' }}>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-white font-[var(--font-space-grotesk)]">
+                {userProfile.name}'s Storefront
+              </h1>
+              <p className="text-gray-300 mt-1">{userProfile.title}</p>
+            </div>
+            <div className="flex items-center gap-4" style={{ position: 'relative', zIndex: 999999 }}>
+              <GradientCustomizer
+                gradientColors={gradientColors}
+                isReadOnly={false}
+                userId={userId}
+                onGradientChange={handleGradientChange}
+              />
+              <MusicPlayer 
+                userId={userId}
+                isReadOnly={true}
+              />
+            </div>
           </div>
-          
-          <div className="flex items-center space-x-2">
+        </header>
+
+        {/* Content Area */}
+        <div className="p-4" style={{ position: 'relative', zIndex: 1 }}>
+          {renderContent()}
+        </div>
+      </div>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+// Home Page Component
+const HomePage = ({ userProfile, listings, pagination, onPageChange }) => {
+  return (
+    <div className="space-y-6 z-0">
+      {/* Hero Section */}
+      <div className="glass-effect p-8 rounded-2xl text-center">
+        <div className="relative w-32 h-32 mx-auto mb-6">
+          <img
+            src={userProfile.avatar}
+            alt={userProfile.name}
+            className="w-full h-full rounded-full object-contain border-4 border-[#39FF14]"
+          />
+          <div className="absolute -bottom-2 -right-2 bg-[#39FF14] text-black px-3 py-1 rounded-full text-sm font-bold">
+            ⭐ {userProfile.rating}
+          </div>
+        </div>
+        <h2 className="text-4xl font-bold text-white mb-2 font-[var(--font-space-grotesk)]">
+          Welcome to {userProfile.name}'s Store
+        </h2>
+        <p className="text-gray-300 text-lg mb-6">{userProfile.bio}</p>
+        <div className="flex justify-center gap-8 text-center">
+          <div>
+            <div className="text-2xl font-bold text-[#39FF14]">{userProfile.totalSales}</div>
+            <div className="text-gray-400 text-sm">Total Sales</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-[#39FF14]">{userProfile.followers}</div>
+            <div className="text-gray-400 text-sm">Followers</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-[#39FF14]">{userProfile.rating}/5</div>
+            <div className="text-gray-400 text-sm">Rating</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Featured Listings */}
+      <div className="glass-effect p-6 rounded-2xl">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-2xl font-bold text-white font-[var(--font-space-grotesk)]">Featured Items</h3>
+          {pagination && (
+            <div className="text-gray-300 text-sm">
+              Showing {pagination.total} items
+            </div>
+          )}
+        </div>
+        
+        {/* Loading State */}
+        {listings.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((index) => (
+              <div key={index} className="glass-effect-light p-4 rounded-xl animate-pulse">
+                <div className="w-full h-48 bg-gray-600 rounded-lg mb-4"></div>
+                <div className="h-4 bg-gray-600 rounded mb-2"></div>
+                <div className="h-3 bg-gray-600 rounded mb-2 w-2/3"></div>
+                <div className="flex justify-between items-center">
+                  <div className="h-4 bg-gray-600 rounded w-1/3"></div>
+                  <div className="h-3 bg-gray-600 rounded w-1/4"></div>
+                </div>
+                <div className="w-full h-8 bg-gray-600 rounded-lg mt-4"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {listings.map((listing) => (
+              <div key={listing.id} className="glass-effect-light p-4 rounded-xl hover:scale-105 transition-all duration-300">
+                <img
+                  src={listing.images && listing.images.length > 0 ? listing.images[0].trim() : '/logo.jpg'}
+                  alt={listing.title}
+                  className="w-full h-48 object-cover rounded-lg mb-4"
+                  onError={(e) => {
+                    e.target.src = '/logo.jpg';
+                  }}
+                />
+                <h4 className="text-white font-semibold mb-2">{listing.title}</h4>
+                <p className="text-gray-400 text-sm mb-2 capitalize">{listing.category}</p>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[#39FF14] font-bold text-lg">${listing.price}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-400">👁️</span>
+                    <span className="text-gray-300 text-sm">{listing.views}</span>
+                  </div>
+                </div>
+                {listing.is_auction ? (
+                  <div className="mb-2">
+                    <span className="text-orange-400 text-sm font-medium">🔥 Auction</span>
+                    {listing.current_bid && (
+                      <div className="text-gray-300 text-sm">Current Bid: ${listing.current_bid}</div>
+                    )}
+                  </div>
+                ) : null}
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {listing.tags && listing.tags.slice(0, 2).map((tag, index) => (
+                    <span key={index} className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <button className="w-full bg-[#39FF14] text-black py-2 rounded-lg font-semibold hover:bg-[#2dd10f] transition-colors duration-300">
+                  View Details
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex justify-center items-center gap-4 mt-8">
             <button
-              onClick={goToPreviousPage}
-              disabled={currentPage === 1}
-              className={`p-2 rounded-lg transition-all duration-300 ${
-                currentPage === 1 
-                  ? 'text-gray-600 cursor-not-allowed' 
-                  : 'text-[#39FF14] hover:bg-[#39FF14]/20 hover:scale-110'
+              onClick={() => onPageChange(pagination.currentPage - 1)}
+              disabled={!pagination.hasPrevious}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+                pagination.hasPrevious
+                  ? 'glass-effect-light text-white hover:text-[#39FF14] cursor-pointer'
+                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
               }`}
             >
-              <ChevronLeft className="w-5 h-5" />
+              Previous
             </button>
             
-            {getPageNumbers().map((page, index) => (
-              page === '...' ? (
-                <span key={index} className="px-3 py-2 text-gray-400">...</span>
-              ) : (
+            <div className="flex items-center gap-2">
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
                 <button
-                  key={index}
-                  onClick={() => goToPage(page)}
-                  className={`px-4 py-2 rounded-lg transition-all duration-300 ${
-                    currentPage === page
-                      ? 'bg-[#39FF14] text-black font-bold'
-                      : 'text-gray-300 hover:text-[#39FF14] hover:bg-[#39FF14]/20'
+                  key={page}
+                  onClick={() => onPageChange(page)}
+                  className={`w-10 h-10 rounded-lg font-medium transition-all duration-300 ${
+                    page === pagination.currentPage
+                      ? 'bg-[#39FF14] text-black'
+                      : 'glass-effect-light text-white hover:text-[#39FF14]'
                   }`}
                 >
                   {page}
                 </button>
-              )
-            ))}
+              ))}
+            </div>
             
             <button
-              onClick={goToNextPage}
-              disabled={currentPage === totalPages}
-              className={`p-2 rounded-lg transition-all duration-300 ${
-                currentPage === totalPages 
-                  ? 'text-gray-600 cursor-not-allowed' 
-                  : 'text-[#39FF14] hover:bg-[#39FF14]/20 hover:scale-110'
+              onClick={() => onPageChange(pagination.currentPage + 1)}
+              disabled={!pagination.hasMore}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+                pagination.hasMore
+                  ? 'glass-effect-light text-white hover:text-[#39FF14] cursor-pointer'
+                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
               }`}
             >
-              <ChevronRight className="w-5 h-5" />
+              Next
             </button>
           </div>
-        </div>
+        )}
       </div>
-    )
-  }
+    </div>
+  );
+};
 
-  // Enhanced Spotify Widget Component
-  const SpotifyWidget = () => {
-    const [isMinimized, setIsMinimized] = useState(true)
-    
-    return (
-      <div className="fixed bottom-6 right-6 z-50">
-        <div className={`${getGlassmorphismClasses('high', 'xl')} rounded-2xl transition-all duration-500 hover:scale-105 hover:shadow-[#39FF14]/30 ${
-          isMinimized ? 'p-0' : 'p-4'
-        }`}>
-          {/* Minimized state */}
-          {isMinimized && (
-            <button
-              onClick={() => setIsMinimized(false)}
-              className="p-4 flex items-center space-x-3 text-[#39FF14] hover:text-[#39FF14]/80 transition-all duration-300 group hover:bg-[#39FF14]/10 rounded-2xl"
-              title="Expand Music Player"
-            >
-              <Music className="w-6 h-6 group-hover:scale-110 transition-transform animate-pulse" />
-              <span className="text-sm font-bold tracking-wide">VIBES</span>
-              {isPlaying && (
-                <div className="w-3 h-3 bg-[#39FF14] rounded-full animate-bounce"></div>
-              )}
-            </button>
-          )}
-
-          {/* Expanded state */}
-          {!isMinimized && (
-            <div className="w-80">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3 text-[#39FF14]">
-                  <Music className="w-6 h-6 animate-pulse" />
-                  <span className="text-lg font-bold tracking-wide">CYBER VIBES</span>
-                  {isPlaying && (
-                    <div className="flex space-x-1">
-                      <div className="w-1 h-4 bg-[#39FF14] rounded-full animate-pulse"></div>
-                      <div className="w-1 h-6 bg-[#39FF14] rounded-full animate-pulse" style={{animationDelay: '0.1s'}}></div>
-                      <div className="w-1 h-3 bg-[#39FF14] rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => setIsMinimized(true)}
-                  className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
-                  title="Minimize Player"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Track List */}
-              <div className="space-y-2 mb-4 max-h-48 overflow-y-auto custom-scrollbar">
-                {backgroundTracks.map((track) => (
-                  <div
-                    key={track.id}
-                    className={`p-3 rounded-xl transition-all duration-300 cursor-pointer hover:bg-white/10 ${
-                      currentTrack?.id === track.id ? 'bg-[#39FF14]/20 border border-[#39FF14]/40' : 'bg-white/5'
-                    }`}
-                    onClick={() => playTrack(track)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="font-semibold text-white text-sm">{track.name}</p>
-                        <p className="text-gray-400 text-xs">{track.artist}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs text-gray-400">{track.duration}</span>
-                        {currentTrack?.id === track.id && isPlaying ? (
-                          <Pause className="w-4 h-4 text-[#39FF14]" />
-                        ) : (
-                          <Play className="w-4 h-4 text-gray-400" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Controls */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={togglePlayPause}
-                    className="p-2 rounded-full bg-[#39FF14]/20 hover:bg-[#39FF14]/30 transition-all duration-300 hover:scale-110"
-                  >
-                    {isPlaying ? (
-                      <Pause className="w-5 h-5 text-[#39FF14]" />
-                    ) : (
-                      <Play className="w-5 h-5 text-[#39FF14]" />
-                    )}
-                  </button>
-                  <button
-                    onClick={toggleMute}
-                    className="p-2 rounded-full hover:bg-white/10 transition-all duration-300"
-                  >
-                    {isMuted ? (
-                      <VolumeX className="w-4 h-4 text-gray-400" />
-                    ) : (
-                      <Volume2 className="w-4 h-4 text-gray-400" />
-                    )}
-                  </button>
-                </div>
-                
-                {/* Volume Slider */}
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={volume}
-                    onChange={(e) => setVolume(parseFloat(e.target.value))}
-                    className="w-20 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  // Enhanced Background Selector
-  const BackgroundSelector = () => {
-    const [showSelector, setShowSelector] = useState(false)
-    
-    return (
-      <div className="fixed top-6 right-6 z-999">
-        <div className={`${getGlassmorphismClasses('medium', 'lg')} rounded-2xl transition-all duration-500 hover:scale-105`}>
-          {!showSelector ? (
-            <button
-              onClick={() => setShowSelector(true)}
-              className="p-3 text-[#39FF14] hover:text-[#39FF14]/80 transition-all duration-300 hover:bg-[#39FF14]/10 rounded-2xl"
-              title="Change Background"
-            >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-green-500 animate-pulse"></div>
-            </button>
-          ) : (
-            <div className="p-4 w-64">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-white font-semibold text-sm">Background</span>
-                <button
-                  onClick={() => setShowSelector(false)}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {backgroundOptions.map((bg) => (
-                  <button
-                    key={bg.id}
-                    onClick={() => {
-                      setSelectedBackground(bg)
-                      setShowSelector(false)
-                    }}
-                    className={`p-2 rounded-xl transition-all duration-300 hover:scale-105 ${
-                      selectedBackground.id === bg.id ? 'ring-2 ring-[#39FF14]' : ''
-                    }`}
-                  >
-                    <div className={`w-full h-12 rounded-lg ${bg.class} ${bg.overlay}`}></div>
-                    <p className="text-xs text-gray-300 mt-1 text-center">{bg.name}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className={`min-h-screen ${selectedBackground.class} flex items-center justify-center`}>
-        <div className={`absolute inset-0 ${selectedBackground.overlay}`}></div>
-        <div className="relative text-center">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-32 w-32 border-4 border-gray-800 mx-auto border-t-[#39FF14]"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Store className="w-8 h-8 text-[#39FF14] animate-pulse" />
-            </div>
-          </div>
-          <p className="mt-4 text-lg font-medium text-white/80 animate-pulse">
-            Loading storefront...
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!storefront && !loading) {
-    return (
-      <div className={`min-h-screen ${selectedBackground.class} flex items-center justify-center`}>
-        <div className={`absolute inset-0 ${selectedBackground.overlay}`}></div>
-        <div className="relative text-center max-w-md mx-auto px-6">
-          <div className={`${getGlassmorphismClasses('high', 'xl')} p-12 rounded-3xl hover:scale-105 transition-all duration-500`}>
-            <Store className="w-20 h-20 mx-auto mb-6 text-[#39FF14] animate-pulse" />
-            <h1 className="text-3xl font-bold mb-4 text-white">
-              Storefront Not Found
-            </h1>
-            <p className="mb-6 leading-relaxed text-gray-300">
-              The storefront you're looking for doesn't exist or is not active.
-            </p>
-            <Link href="/marketplace"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#39FF14] text-black font-semibold rounded-xl hover:bg-[#39FF14]/90 transition-all duration-300 hover:scale-105">
-              <ExternalLink className="w-5 h-5" />
-              Browse Marketplace
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
+// About Page Component
+const AboutPage = ({ userProfile }) => {
   return (
-    <div className={`min-h-screen ${selectedBackground.class} relative`}>
-      {/* Background Overlay */}
-      <div className={`absolute inset-0 ${selectedBackground.overlay}`}></div>
-      
-      {/* Animated Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%2339FF14" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')`,
-          animation: 'float 20s ease-in-out infinite'
-        }}></div>
-      </div>
-
-      {/* Widgets */}
-      <SpotifyWidget />
-      <BackgroundSelector />
-
-      {/* Main Content */}
-      <div className="relative z-10">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden">
-          <div className="max-w-7xl mx-auto px-6 py-16">
-            {/* Enhanced Header Card */}
-            <div className={`${getGlassmorphismClasses('high', 'xl')} rounded-3xl p-8 mb-12 hover:scale-[1.02] transition-all duration-500 hover:shadow-[#39FF14]/30 mt-10`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-6">
-                  {/* Enhanced Logo */}
-                  <div className="relative">
-                    <div className="w-16 h-16 bg-gradient-to-br from-[#39FF14] to-green-400 rounded-2xl flex items-center justify-center shadow-2xl hover:scale-110 transition-transform duration-300">
-                      <Store className="w-8 h-8 text-black" />
-                    </div>
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#39FF14] rounded-full flex items-center justify-center animate-pulse">
-                      <div className="w-2 h-2 bg-black rounded-full"></div>
-                    </div>
-                  </div>
-                  
-                  {/* Enhanced Store Name */}
-                  <div>
-                    <h1 className="text-4xl font-black bg-gradient-to-r from-white via-[#39FF14] to-white bg-clip-text text-transparent">
-                      {storefront.username}'s Storefront Store
-                    </h1>
-                    <p className="text-gray-400 text-sm mt-1 tracking-wide">PREMIUM DIGITAL MARKETPLACE</p>
-                  </div>
-                </div>
-                
-                {/* Enhanced Stats */}
-                <div className="flex space-x-4">
-                  <div className={`${getGlassmorphismClasses('medium', 'md')} px-4 py-2 rounded-xl hover:scale-105 transition-all duration-300`}>
-                    <span className="text-[#39FF14] font-bold text-lg">{storefront.stats?.totalListings || allListings.length}</span>
-                    <p className="text-gray-400 text-xs">ITEMS</p>
-                  </div>
-                  <div className={`${getGlassmorphismClasses('medium', 'md')} px-4 py-2 rounded-xl hover:scale-105 transition-all duration-300`}>
-                    <span className="text-blue-400 font-bold text-lg">{storefront.stats?.totalViews?.toLocaleString() || '0'}</span>
-                    <p className="text-gray-400 text-xs">VIEWS</p>
-                  </div>
-                </div>
+    <div className="space-y-6">
+      {/* About Hero */}
+      <div className="glass-effect p-8 rounded-2xl">
+        <div className="grid md:grid-cols-2 gap-8 items-center">
+          <div>
+            <h2 className="text-4xl font-bold text-white mb-4 font-[var(--font-space-grotesk)]">About Me</h2>
+            <p className="text-gray-300 text-lg leading-relaxed mb-6">
+              {userProfile.bio} I've been creating digital experiences for over 8 years, 
+              specializing in innovative solutions that bridge the gap between technology and human connection.
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="text-[#39FF14]">📍</span>
+                <span className="text-white">{userProfile.location}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[#39FF14]">📅</span>
+                <span className="text-white">Member since {userProfile.joinedDate}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[#39FF14]">🏆</span>
+                <span className="text-white">Top Rated Seller</span>
               </div>
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center justify-center gap-6 mb-5">
-              <button onClick={shareStorefront}
-                      className={`${getGlassmorphismClasses('medium', 'lg')} px-8 py-4 rounded-2xl hover:scale-105 transition-all duration-300 hover:bg-white/20 flex items-center gap-3 text-white font-semibold`}>
-                <Share2 className="w-5 h-5" />
-                SHARE STORE
-              </button>
-              <Link href="/marketplace"
-                    className="px-8 py-4 bg-[#39FF14] text-black font-bold rounded-2xl hover:bg-[#39FF14]/90 transition-all duration-300 hover:scale-105 flex items-center gap-3 shadow-2xl hover:shadow-[#39FF14]/50">
-                <ExternalLink className="w-5 h-5" />
-                BROWSE ALL
-              </Link>
-            </div>
+          </div>
+          <div className="relative">
+            <img
+              src={userProfile.coverImage}
+              alt="About cover"
+              className="w-full h-64 object-contain rounded-full"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-xl"></div>
           </div>
         </div>
+      </div>
 
-        {/* Listings Section */}
-        <div className="max-w-7xl mx-auto px-6 pb-5">
-          {/* Enhanced Search and Filter Bar */}
-          <div className={`${getGlassmorphismClasses('high', 'xl')} p-8 mb-12 rounded-3xl hover:scale-[1.01] transition-all duration-500 hover:shadow-[#39FF14]/30`}>
-            <div className="flex flex-col lg:flex-row gap-6">
-              {/* Search Input */}
-              <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search listings..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-transparent transition-all duration-300"
-                />
-              </div>
-              
-              {/* Category Filter */}
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-6 py-4 bg-white/10 border border-white/20 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-transparent transition-all duration-300"
-              >
-                <option value="" className="bg-gray-800">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category} className="bg-gray-800">
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
-                  </option>
-                ))}
-              </select>
-              
-              {/* Sort Options */}
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-6 py-4 bg-white/10 border border-white/20 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-transparent transition-all duration-300"
-              >
-                <option value="newest" className="bg-gray-800">Newest First</option>
-                <option value="oldest" className="bg-gray-800">Oldest First</option>
-                <option value="price-low" className="bg-gray-800">Price: Low to High</option>
-                <option value="price-high" className="bg-gray-800">Price: High to Low</option>
-                <option value="views" className="bg-gray-800">Most Viewed</option>
-              </select>
+      {/* Skills & Expertise */}
+      <div className="glass-effect p-6 rounded-2xl">
+        <h3 className="text-2xl font-bold text-white mb-6 font-[var(--font-space-grotesk)]">Skills & Expertise</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {['Web Development', 'Digital Art', 'UI/UX Design', 'Photography', 'Blockchain', 'NFTs', 'E-commerce', 'Consulting'].map((skill) => (
+            <div key={skill} className="glass-effect-light p-3 rounded-lg text-center">
+              <span className="text-white font-medium">{skill}</span>
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
 
-          {/* Listings Grid */}
-          {displayedListings.length > 0 ? (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-                {displayedListings.map((listing) => (
-                  <div key={listing.id} className={`${getGlassmorphismClasses('medium', 'lg')} rounded-3xl overflow-hidden hover:scale-105 transition-all duration-500 hover:shadow-[#39FF14]/30 group`}>
-                    {/* Listing Image */}
-                    <div className="relative h-64 overflow-hidden">
-                      <img
-                        src={JSON.parse(listing.images)[0]?.replace(/`/g, '') || '/placeholder-image.jpg'}
-                        alt={listing.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      
-                      {/* Status Badge */}
-                      <div className="absolute top-4 left-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          listing.status === 'approved' ? 'bg-[#39FF14] text-black' :
-                          listing.status === 'sold' ? 'bg-red-500 text-white' :
-                          'bg-yellow-500 text-black'
-                        }`}>
-                          {listing.status.toUpperCase()}
-                        </span>
-                      </div>
-                      
-                      {/* Chain Badge */}
-                      <div className="absolute top-4 right-4">
-                        <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold text-white">
-                          {listing.chain.toUpperCase()}
-                        </span>
-                      </div>
-                      
-                      {/* Views */}
-                      <div className="absolute bottom-4 right-4 flex items-center gap-2 text-white">
-                        <Eye className="w-4 h-4" />
-                        <span className="text-sm font-medium">{listing.views || 0}</span>
-                      </div>
-                    </div>
-                    
-                    {/* Listing Content */}
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="text-xl font-bold text-white group-hover:text-[#39FF14] transition-colors duration-300 line-clamp-2">
-                          {listing.title}
-                        </h3>
-                      </div>
-                      
-                      <p className="text-gray-400 text-sm mb-4 line-clamp-2">
-                        {listing.description}
-                      </p>
-                      
-                      {/* Tags */}
-                      {JSON.parse(listing.tags).length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {JSON.parse(listing.tags).slice(0, 3).map((tag, index) => (
-                            <span key={index} className="px-2 py-1 bg-white/10 rounded-lg text-xs text-gray-300">
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {/* Price and Action */}
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-2xl font-bold text-[#39FF14]">
-                            {parseFloat(listing.price).toFixed(2)}
-                          </span>
-                          <span className="text-gray-400 text-sm ml-1">{listing.chain.toUpperCase()}</span>
-                        </div>
-                        
-                        <Link href={`/marketplace/${listing.id}`}
-                              className="px-4 py-2 bg-[#39FF14] text-black font-semibold rounded-xl hover:bg-[#39FF14]/90 transition-all duration-300 hover:scale-105">
-                          View Details
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+      {/* Journey Timeline */}
+      <div className="glass-effect p-6 rounded-2xl">
+        <h3 className="text-2xl font-bold text-white mb-6 font-[var(--font-space-grotesk)]">My Journey</h3>
+        <div className="space-y-6">
+          {[
+            { year: '2016', title: 'Started Freelancing', desc: 'Began my journey as a freelance web developer' },
+            { year: '2019', title: 'First Digital Art Sale', desc: 'Sold my first digital artwork for $500' },
+            { year: '2021', title: 'Entered NFT Space', desc: 'Created and sold my first NFT collection' },
+            { year: '2024', title: 'Joined RippleBids', desc: 'Started selling on the RippleBids marketplace' }
+          ].map((milestone, index) => (
+            <div key={index} className="flex gap-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-[#39FF14] rounded-full flex items-center justify-center text-black font-bold">
+                {milestone.year.slice(-2)}
               </div>
-              
-              {/* Pagination */}
-              <PaginationComponent />
-            </>
-          ) : (
-            <div className={`${getGlassmorphismClasses('medium', 'lg')} p-12 rounded-3xl text-center`}>
-              <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-xl font-semibold text-white mb-2">No Listings Found</h3>
-              <p className="text-gray-400">
-                {searchTerm || selectedCategory ? 'Try adjusting your search or filters.' : 'This storefront has no listings yet.'}
-              </p>
+              <div>
+                <h4 className="text-white font-semibold">{milestone.title}</h4>
+                <p className="text-gray-400">{milestone.desc}</p>
+              </div>
             </div>
-          )}
+          ))}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
+
+// Portfolio Page Component
+const PortfolioPage = ({ listings }) => {
+  const [filter, setFilter] = useState('all');
+  const categories = ['all', 'Digital Art', 'Services', 'Photography'];
+
+  const filteredListings = filter === 'all' 
+    ? listings 
+    : listings.filter(listing => listing.category === filter);
+
+  return (
+    <div className="space-y-6">
+      <div className="glass-effect p-6 rounded-2xl">
+        <h2 className="text-3xl font-bold text-white mb-6 font-[var(--font-space-grotesk)]">Portfolio</h2>
+        
+        {/* Filter Buttons */}
+        <div className="flex flex-wrap gap-3 mb-6">
+          {categories.map((category) => (
+            <button
+              key={category}
+              onClick={() => setFilter(category)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+                filter === category
+                  ? 'bg-[#39FF14] text-black'
+                  : 'glass-effect-light text-white hover:text-[#39FF14]'
+              }`}
+            >
+              {category.charAt(0).toUpperCase() + category.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Portfolio Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredListings.map((item) => (
+            <div key={item.id} className="glass-effect-light p-4 rounded-xl hover:scale-105 transition-all duration-300">
+              <img
+                src={item.image}
+                alt={item.title}
+                className="w-full h-48 object-contain rounded-lg mb-4"
+              />
+              <h4 className="text-white font-semibold mb-2">{item.title}</h4>
+              <p className="text-gray-400 text-sm mb-2">{item.category}</p>
+              <div className="flex justify-between items-center">
+                <span className="text-[#39FF14] font-bold text-lg">${item.price}</span>
+                <span className="text-gray-300 text-sm">{item.sales} sold</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Services Page Component (Updated to use props)
+const ServicesPage = ({ services }) => {
+  // Use fallback services if none provided
+  const defaultServices = [
+    {
+      title: 'Custom Web Development',
+      description: 'Full-stack web applications built with modern technologies',
+      price: 'Starting at $1,299',
+      features: ['Responsive Design', 'SEO Optimized', 'Fast Loading', 'Mobile First']
+    },
+    {
+      title: 'Digital Art Commission',
+      description: 'Unique digital artwork tailored to your vision',
+      price: 'Starting at $299',
+      features: ['High Resolution', 'Multiple Formats', 'Commercial License', 'Revisions Included']
+    },
+    {
+      title: 'NFT Collection Creation',
+      description: 'Complete NFT collection with metadata and smart contracts',
+      price: 'Starting at $2,499',
+      features: ['Smart Contract', 'Metadata Generation', 'Rarity System', 'Marketplace Ready']
+    }
+  ];
+
+  const displayServices = services && services.length > 0 ? services : defaultServices;
+
+  return (
+    <div className="space-y-6">
+      <div className="glass-effect p-6 rounded-2xl">
+        <h2 className="text-3xl font-bold text-white mb-6 font-[var(--font-space-grotesk)]">Services</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {displayServices.map((service, index) => (
+            <div key={index} className="glass-effect-light p-6 rounded-xl">
+              <h3 className="text-xl font-bold text-white mb-3">{service.title}</h3>
+              <p className="text-gray-300 mb-4">{service.description}</p>
+              <div className="text-[#39FF14] font-bold text-lg mb-4">{service.price}</div>
+              <ul className="space-y-2 mb-6">
+                {service.features.map((feature, idx) => (
+                  <li key={idx} className="text-gray-300 flex items-center gap-2">
+                    <span className="text-[#39FF14]">✓</span>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <button className="w-full bg-[#39FF14] text-black py-2 rounded-lg font-semibold hover:bg-[#2dd10f] transition-colors duration-300">
+                Get Quote
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Contact Page Component (Updated to use social links and remove form submission)
+const ContactPage = ({ userProfile, socialLinks }) => {
+  const defaultSocialLinks = [
+    { platform: 'Twitter', url: '#' },
+    { platform: 'Instagram', url: '#' },
+    { platform: 'LinkedIn', url: '#' },
+    { platform: 'GitHub', url: '#' }
+  ];
+
+  const displaySocialLinks = socialLinks && socialLinks.length > 0 ? socialLinks : defaultSocialLinks;
+
+  return (
+    <div className="space-y-6">
+      <div className="glass-effect p-6 rounded-2xl">
+        <h2 className="text-3xl font-bold text-white mb-6 font-[var(--font-space-grotesk)]">Get In Touch</h2>
+        <div className="grid md:grid-cols-2 gap-8">
+          <div>
+            <h3 className="text-xl font-bold text-white mb-4">Contact Information</h3>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="text-[#39FF14]">📧</span>
+                <span className="text-white">{userProfile.email || 'contact@example.com'}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[#39FF14]">📱</span>
+                <span className="text-white">{userProfile.phone || '+1 (555) 123-4567'}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[#39FF14]">📍</span>
+                <span className="text-white">{userProfile.location}</span>
+              </div>
+            </div>
+            
+            <h3 className="text-xl font-bold text-white mb-4 mt-8">Social Media</h3>
+            <div className="flex gap-4 flex-wrap">
+              {displaySocialLinks.map((link, index) => (
+                <a 
+                  key={index} 
+                  href={link.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="glass-effect-light p-3 rounded-lg text-white hover:text-[#39FF14] transition-colors duration-300"
+                >
+                  {link.platform}
+                </a>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-xl font-bold text-white mb-4">Send a Message</h3>
+            <div className="glass-effect-light p-6 rounded-xl text-center">
+              <p className="text-gray-300 mb-4">Contact form is available for the storefront owner.</p>
+              <p className="text-sm text-gray-400">Please use the contact information on the left to reach out directly.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PublicStorefront;

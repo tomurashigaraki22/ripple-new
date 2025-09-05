@@ -68,6 +68,8 @@ const Navbar = () => {
       : { href: "/marketplace/orders", label: "My Orders" },
   ]
 
+  if (pathname.includes("/public")) return null
+
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl z-50">
       <div className="relative">
