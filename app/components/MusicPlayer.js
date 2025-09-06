@@ -23,7 +23,7 @@ const MusicPlayer = ({ userId, isReadOnly = false }) => {
     const fetchWidgetSettings = async () => {
       try {
         // Only GET request to fetch widget settings
-        const response = await fetch(`${API_BASE_URL}/storefronts_bp/music-widgets/${userId}`);
+        const response = await fetch(`${API_BASE_URL}/storefronts/music-widgets/${userId}`);
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.widgets) {

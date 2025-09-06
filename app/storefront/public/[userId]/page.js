@@ -13,19 +13,16 @@ const PublicStorefront = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState('home');
   const [pagination, setPagination] = useState({
-  total: 0,
-  totalPages: 0,
-  currentPage: 1,
-  limit: 20,
-  hasMore: false,
-  hasPrevious: false
-});
-  const [gradientColors, setGradientColors] = useState({
-    primary: '#1a1a2e',
-    secondary: '#16213e',
-    accent: '#39FF14'
+    total: 0,
+    totalPages: 0,
+    currentPage: 1,
+    limit: 20,
+    hasMore: false,
+    hasPrevious: false
   });
-  const [localGradientColors, setLocalGradientColors] = useState(null); // For local preview
+  // Change the initial gradientColors state to null
+  const [gradientColors, setGradientColors] = useState(null);
+  const [localGradientColors, setLocalGradientColors] = useState(null);
   const [userProfile, setUserProfile] = useState({
     name: 'Dev Tomiwa',
     title: 'FullStack Web, App and Web3 Developer',
@@ -40,141 +37,31 @@ const PublicStorefront = () => {
   });
   const [services, setServices] = useState([]);
   const [socialLinks, setSocialLinks] = useState([]);
+  const [themes, setThemes] = useState([]);
+  const [activeTheme, setActiveTheme] = useState(null);
+  const [musicWidgets, setMusicWidgets] = useState([]);
+  const [activeMusicWidget, setActiveMusicWidget] = useState(null);
   const [listings, setListings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [storefrontId, setStorefrontId] = useState(null);
 
-  useEffect(() => {
-    const fetchStorefrontData = async () => {
-      try {
-        // Fetch user profile
-        const profileResponse = await fetch(`${API_BASE_URL}/storefronts_bp/profile/${userId}`);
-        if (profileResponse.ok) {
-          const profileData = await profileResponse.json();
-          if (profileData.success) {
-            setUserProfile(profileData.profile);
-          }
-        }
-
-        // Fetch services
-        const servicesResponse = await fetch(`${API_BASE_URL}/storefronts_bp/services/${userId}`);
-        if (servicesResponse.ok) {
-          const servicesData = await servicesResponse.json();
-          if (servicesData.success) {
-            setServices(servicesData.services);
-          }
-        }
-
-        // Fetch social links
-        const socialResponse = await fetch(`${API_BASE_URL}/storefronts_bp/social/${userId}`);
-        if (socialResponse.ok) {
-          const socialData = await socialResponse.json();
-          if (socialData.success) {
-            setSocialLinks(socialData.social_links);
-          }
-        }
-
-        // Fetch active theme
-        const themeResponse = await fetch(`${API_BASE_URL}/storefronts_bp/themes/${userId}`);
-        if (themeResponse.ok) {
-          const themeData = await themeResponse.json();
-          if (themeData.success && themeData.theme) {
-            setGradientColors({
-              primary: themeData.theme.primary_color,
-              secondary: themeData.theme.secondary_color,
-              accent: themeData.theme.accent_color
-            });
-          }
-        }
-
-        // Demo listings (client-side dummy data)
-        const demoListings = [
-          {
-            id: 1,
-            title: 'Premium Digital Art Collection',
-            price: 299.99,
-            image: '/logo.jpg',
-            category: 'Digital Art',
-            rating: 4.8,
-            sales: 45
-          },
-          {
-            id: 2,
-            title: 'Custom Web Development Service',
-            price: 1299.99,
-            image: '/logo.jpg',
-            category: 'Services',
-            rating: 5.0,
-            sales: 23
-          },
-          {
-            id: 3,
-            title: 'Photography Preset Pack',
-            price: 49.99,
-            image: '/logo.jpg',
-            category: 'Photography',
-            rating: 4.7,
-            sales: 89
-          }
-        ];
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error fetching storefront data:', error);
-        setIsLoading(false);
-      }
-    };
-
-    if (userId) {
-      fetchStorefrontData();
-    }
-  }, [userId]);
-
-  const gradientStyle = {
-    background: `linear-gradient(135deg, ${(localGradientColors || gradientColors).primary} 0%, ${(localGradientColors || gradientColors).secondary} 50%, ${(localGradientColors || gradientColors).primary} 100%)`,
+  // Add the handleGradientChange function
+  const handleGradientChange = (newGradientColors) => {
+    setLocalGradientColors(newGradientColors);
   };
 
-    const handleGradientChange = (newGradient) => {
-    setLocalGradientColors(newGradient);
-  };
-
-  useEffect(() => {
-    const fetchListings = async () => {
-        try {
-            // Extract userId from pathname
-            const pathSegments = window.location.pathname.split('/');
-            const userId = pathSegments[pathSegments.length - 1];
-            
-            if (!userId) {
-                console.error('User ID not found in pathname');
-                return;
-            }
-            
-            const response = await fetch(`${API_BASE_URL}/storefront/listings?user_id=${userId}`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            // Handle the response data
-            if (data.listings) {
-                setListings(data.listings);
-                setPagination(data.pagination);
-            }
-            
-        } catch (error) {
-            console.error("Error fetching listings:", error);
-        }
-    };
-    
-    fetchListings();
-}, [])
-
+  // Add the renderContent function
   const renderContent = () => {
     switch (currentPage) {
       case 'home':
-        return <HomePage userProfile={userProfile} listings={listings} />;
+        return (
+          <HomePage 
+            userProfile={userProfile} 
+            listings={listings} 
+            pagination={pagination} 
+            onPageChange={setCurrentPage} 
+          />
+        );
       case 'about':
         return <AboutPage userProfile={userProfile} />;
       case 'portfolio':
@@ -184,13 +71,204 @@ const PublicStorefront = () => {
       case 'contact':
         return <ContactPage userProfile={userProfile} socialLinks={socialLinks} />;
       default:
-        return <HomePage userProfile={userProfile} listings={listings} />;
+        return (
+          <HomePage 
+            userProfile={userProfile} 
+            listings={listings} 
+            pagination={pagination} 
+            onPageChange={setCurrentPage} 
+          />
+        );
     }
   };
 
-  if (isLoading) {
+  useEffect(() => {
+    const fetchStorefrontData = async () => {
+      try {
+        setIsLoading(true);
+        let currentStorefrontId = null;
+        let themeApplied = false; // Declare themeApplied at the function scope
+        
+        // Set default gradient colors (fallback)
+        const defaultGradient = {
+          primary: '#1a1a2e',
+          secondary: '#16213e',
+          accent: '#39FF14'
+        };
+        
+        // Fetch user profile first to get storefront_id
+        const profileResponse = await fetch(`${API_BASE_URL}/storefronts/profile/${userId}`);
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          if (profileData.success) {
+            setUserProfile({
+              name: profileData.profile.name || 'Dev Tomiwa',
+              title: profileData.profile.title || 'FullStack Web, App and Web3 Developer',
+              bio: profileData.profile.bio || 'Passionate about creating innovative digital experiences and building meaningful connections through technology.',
+              avatar: profileData.profile.avatar || '/logo.jpg',
+              coverImage: profileData.profile.cover_image || '/logo.jpg',
+              location: profileData.profile.location || 'Port Harcourt, Nigeria',
+              email: profileData.profile.email || '',
+              phone: profileData.profile.phone || '',
+              joinedDate: 'July 2025',
+              totalSales: 156,
+              rating: 4.9,
+              followers: 2847
+            });
+            
+            // Store storefront_id for immediate use
+            if (profileData.profile.storefront_id) {
+              currentStorefrontId = profileData.profile.storefront_id;
+              setStorefrontId(currentStorefrontId);
+            }
+          }
+        }
+
+        // Fetch services using the existing endpoint
+        const servicesResponse = await fetch(`${API_BASE_URL}/storefronts/services/${userId}`);
+        if (servicesResponse.ok) {
+          const servicesData = await servicesResponse.json();
+          if (servicesData.success) {
+            setServices(servicesData.services || []);
+          }
+        }
+
+        // Fetch social links using the new endpoint
+        if (currentStorefrontId) {
+          const socialResponse = await fetch(`${API_BASE_URL}/storefronts/social-links/${currentStorefrontId}`);
+          if (socialResponse.ok) {
+            const socialData = await socialResponse.json();
+            if (socialData.success) {
+              setSocialLinks(socialData.social_links || []);
+            }
+          }
+        }
+
+        // Fetch all themes using the new endpoint
+if (currentStorefrontId) {
+  const themesResponse = await fetch(`${API_BASE_URL}/storefronts/themes/${currentStorefrontId}`);
+  if (themesResponse.ok) {
+    const themesData = await themesResponse.json();
+    if (themesData.success) {
+      setThemes(themesData.themes || []);
+
+      // Find and set active theme
+      const activeThemeData = themesData.themes?.find(theme => theme.is_active === 1);
+      console.log('Active theme found:', activeThemeData);
+
+      if (activeThemeData) {
+        setActiveTheme(activeThemeData);
+        const backendGradient = {
+          primary: activeThemeData.primary_color || defaultGradient.primary,
+          secondary: activeThemeData.secondary_color || defaultGradient.secondary,
+          accent: activeThemeData.accent_color || defaultGradient.accent
+        };
+        console.log('Setting gradient colors:', backendGradient);
+        setGradientColors(backendGradient);
+        themeApplied = true;
+      } else {
+        console.log('No active theme found, using default');
+        setGradientColors(defaultGradient);
+      }
+    }
+  }
+} else {
+  // Fallback to old endpoint, applying same logic as above
+  const themeResponse = await fetch(`${API_BASE_URL}/storefronts/themes/${userId}`);
+  if (themeResponse.ok) {
+    const themeData = await themeResponse.json();
+    console.log("This is theme data:", themeData);
+
+    const themesArray = Array.isArray(themeData.themes)
+      ? themeData.themes
+      : themeData.themes
+      ? [themeData.themes] // wrap in array if it's a single object
+      : [];
+
+    setThemes(themesArray);
+
+    const activeThemeData = themesArray.find(theme => theme.is_active === 1) || themeData.theme;
+
+    if (activeThemeData) {
+      setActiveTheme(activeThemeData);
+      const backendGradient = {
+        primary: activeThemeData.primary_color || defaultGradient.primary,
+        secondary: activeThemeData.secondary_color || defaultGradient.secondary,
+        accent: activeThemeData.accent_color || defaultGradient.accent
+      };
+      setGradientColors(backendGradient);
+      themeApplied = true;
+    } else {
+      console.log('No active theme found, using default');
+      setGradientColors(defaultGradient);
+    }
+  }
+}
+
+        
+        // If no theme was applied from backend, use default
+        if (!themeApplied) {
+          setGradientColors(defaultGradient);
+        }
+
+        // Fetch music widgets using the new endpoint
+        if (currentStorefrontId) {
+          const musicResponse = await fetch(`${API_BASE_URL}/storefronts/music-widgets/${currentStorefrontId}`);
+          if (musicResponse.ok) {
+            const musicData = await musicResponse.json();
+            if (musicData.success) {
+              setMusicWidgets(musicData.music_widgets || []);
+              
+              // Find and set active music widget - handle integer is_active values
+              const activeMusicData = musicData.music_widgets?.find(widget => widget.is_active === 1);
+              if (activeMusicData) {
+                setActiveMusicWidget(activeMusicData);
+              }
+            }
+          }
+        }
+
+        // Fetch listings
+        const listingsResponse = await fetch(`${API_BASE_URL}/storefront/listings?user_id=${userId}`);
+        if (listingsResponse.ok) {
+          const listingsData = await listingsResponse.json();
+          if (listingsData.listings) {
+            setListings(listingsData.listings);
+            setPagination(listingsData.pagination);
+          }
+        }
+        
+      } catch (error) {
+        console.error('Error fetching storefront data:', error);
+        // Set default gradient on error
+        setGradientColors({
+          primary: '#1a1a2e',
+          secondary: '#16213e',
+          accent: '#39FF14'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (userId) {
+      fetchStorefrontData();
+    }
+  }, [userId]);
+
+  // Update the gradientStyle to handle null gradientColors
+  const gradientStyle = {
+    background: gradientColors ? 
+      `linear-gradient(135deg, ${(localGradientColors || gradientColors).primary} 0%, ${(localGradientColors || gradientColors).secondary} 50%, ${(localGradientColors || gradientColors).primary} 100%)` :
+      'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%)', // fallback
+  };
+
+  // Update the loading condition to also check for gradientColors
+  if (isLoading || !gradientColors) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={gradientStyle}>
+      <div className="min-h-screen flex items-center justify-center" style={{
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%)'
+      }}>
         <div className="glass-effect p-8 rounded-2xl">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#39FF14] mx-auto"></div>
           <p className="text-white mt-4 text-center">Loading storefront...</p>
@@ -241,6 +319,8 @@ const PublicStorefront = () => {
               <MusicPlayer 
                 userId={userId}
                 isReadOnly={true}
+                activeMusicWidget={activeMusicWidget}
+                musicWidgets={musicWidgets}
               />
             </div>
           </div>
