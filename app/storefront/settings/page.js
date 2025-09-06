@@ -130,13 +130,13 @@ export default function StorefrontSettings() {
   const handleProfileSave = async () => {
     setSaving(true)
     try {
-      const res = await fetch(`${API_BASE_URL}/storefronts/profile`, {
-        method: "POST",
+      const res = await fetch(`${API_BASE_URL}/storefronts/profile/${user.userId}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ...profile, owner_id: user.userId })
+        body: JSON.stringify(profile)
       })
       const data = await res.json()
-      if (data.message) console.log("Profile saved successfully")
+      if (data.message) console.log("Profile updated successfully")
     } catch (err) {
       console.error("Error saving profile:", err)
     } finally {
@@ -728,7 +728,7 @@ export default function StorefrontSettings() {
                     />
                   </div>
                   <p className="text-gray-400 text-xs mt-2 text-center">
-                    Preview updates automatically when you save changes
+                    Toggle Hide/Show Preview to see latest changes
                   </p>
                 </Card>
               </div>

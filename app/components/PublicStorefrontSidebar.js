@@ -26,25 +26,25 @@ const PublicStorefrontSidebar = ({ isOpen, onClose, currentPage, setCurrentPage,
               <div className="text-center">
                 <div className="relative w-16 h-16 mx-auto mb-3">
                   <img
-                    src={userProfile.avatar}
-                    alt={userProfile.name}
+                    src={userProfile?.avatar}
+                    alt={userProfile?.name}
                     className="w-full h-full rounded-full object-cover border-2 border-[#39FF14]"
                   />
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#39FF14] rounded-full border-2 border-black"></div>
                 </div>
-                <h3 className="text-white font-semibold text-sm truncate">{userProfile.name}</h3>
-                <p className="text-gray-400 text-xs truncate">{userProfile.title}</p>
+                <h3 className="text-white font-semibold text-sm truncate">{userProfile?.name}</h3>
+                <p className="text-gray-400 text-xs truncate">{userProfile?.title}</p>
                 <div className="flex justify-center items-center gap-2 mt-2">
                   <span className="text-yellow-400 text-xs">⭐</span>
-                  <span className="text-white text-xs">{userProfile.rating}</span>
-                  <span className="text-gray-400 text-xs">({userProfile.totalSales} sales)</span>
+                  <span className="text-white text-xs">{userProfile?.rating}</span>
+                  <span className="text-gray-400 text-xs">({userProfile?.totalSales} sales)</span>
                 </div>
               </div>
             ) : (
               <div className="hidden lg:flex justify-center">
                 <img
-                  src={userProfile.avatar}
-                  alt={userProfile.name}
+                  src={userProfile?.avatar}
+                  alt={userProfile?.name}
                   className="w-10 h-10 rounded-full object-contain border-2 border-[#39FF14]"
                 />
               </div>
@@ -84,15 +84,15 @@ const PublicStorefrontSidebar = ({ isOpen, onClose, currentPage, setCurrentPage,
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-400">Total Sales</span>
-                    <span className="text-[#39FF14] font-semibold">{userProfile.totalSales}</span>
+                    <span className="text-[#39FF14] font-semibold">{userProfile?.totalSales}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-400">Followers</span>
-                    <span className="text-[#39FF14] font-semibold">{userProfile.followers}</span>
+                    <span className="text-[#39FF14] font-semibold">{userProfile?.followers}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-400">Rating</span>
-                    <span className="text-[#39FF14] font-semibold">{userProfile.rating}/5</span>
+                    <span className="text-[#39FF14] font-semibold">{userProfile?.rating}/5</span>
                   </div>
                 </div>
               </div>

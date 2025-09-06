@@ -23,18 +23,7 @@ const PublicStorefront = () => {
   // Change the initial gradientColors state to null
   const [gradientColors, setGradientColors] = useState(null);
   const [localGradientColors, setLocalGradientColors] = useState(null);
-  const [userProfile, setUserProfile] = useState({
-    name: 'Dev Tomiwa',
-    title: 'FullStack Web, App and Web3 Developer',
-    bio: 'Passionate about creating innovative digital experiences and building meaningful connections through technology.',
-    avatar: '/logo.jpg',
-    coverImage: '/logo.jpg',
-    location: 'Port Harcourt, Nigeria',
-    joinedDate: 'July 2025',
-    totalSales: 156,
-    rating: 4.9,
-    followers: 2847
-  });
+  const [userProfile, setUserProfile] = useState(null);
   const [services, setServices] = useState([]);
   const [socialLinks, setSocialLinks] = useState([]);
   const [themes, setThemes] = useState([]);
@@ -100,20 +89,21 @@ const PublicStorefront = () => {
         const profileResponse = await fetch(`${API_BASE_URL}/storefronts/profile/${userId}`);
         if (profileResponse.ok) {
           const profileData = await profileResponse.json();
-          if (profileData.success) {
+          console.log("This is my profile data: ", profileData)
+          if (profileData) {
             setUserProfile({
-              name: profileData.profile.name || 'Dev Tomiwa',
-              title: profileData.profile.title || 'FullStack Web, App and Web3 Developer',
-              bio: profileData.profile.bio || 'Passionate about creating innovative digital experiences and building meaningful connections through technology.',
-              avatar: profileData.profile.avatar || '/logo.jpg',
-              coverImage: profileData.profile.cover_image || '/logo.jpg',
-              location: profileData.profile.location || 'Port Harcourt, Nigeria',
-              email: profileData.profile.email || '',
-              phone: profileData.profile.phone || '',
-              joinedDate: 'July 2025',
-              totalSales: 156,
-              rating: 4.9,
-              followers: 2847
+              name: profileData.profile.name,
+              title: profileData.profile.title,
+              bio: profileData.profile.bio,
+              avatar: profileData.profile.avatar,
+              coverImage: profileData.profile.cover_image,
+              location: profileData.profile.location,
+              email: profileData.profile.email,
+              phone: profileData.profile.phone,
+              joinedDate: profileData.profile.joined_date ? new Date(profileData.profile.joined_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'July 2025',
+              totalSales: profileData.profile.total_sales || 0,
+              rating: parseFloat(profileData.profile.rating) || 0,
+              followers: profileData.profile.followers || 0
             });
             
             // Store storefront_id for immediate use
@@ -128,7 +118,7 @@ const PublicStorefront = () => {
         const servicesResponse = await fetch(`${API_BASE_URL}/storefronts/services/${userId}`);
         if (servicesResponse.ok) {
           const servicesData = await servicesResponse.json();
-          if (servicesData.success) {
+          if (servicesData) {
             setServices(servicesData.services || []);
           }
         }
@@ -138,7 +128,7 @@ const PublicStorefront = () => {
           const socialResponse = await fetch(`${API_BASE_URL}/storefronts/social-links/${currentStorefrontId}`);
           if (socialResponse.ok) {
             const socialData = await socialResponse.json();
-            if (socialData.success) {
+            if (socialData) {
               setSocialLinks(socialData.social_links || []);
             }
           }
@@ -149,7 +139,7 @@ if (currentStorefrontId) {
   const themesResponse = await fetch(`${API_BASE_URL}/storefronts/themes/${currentStorefrontId}`);
   if (themesResponse.ok) {
     const themesData = await themesResponse.json();
-    if (themesData.success) {
+    if (themesData) {
       setThemes(themesData.themes || []);
 
       // Find and set active theme
@@ -216,7 +206,7 @@ if (currentStorefrontId) {
           const musicResponse = await fetch(`${API_BASE_URL}/storefronts/music-widgets/${currentStorefrontId}`);
           if (musicResponse.ok) {
             const musicData = await musicResponse.json();
-            if (musicData.success) {
+            if (musicData) {
               setMusicWidgets(musicData.music_widgets || []);
               
               // Find and set active music widget - handle integer is_active values
@@ -305,9 +295,9 @@ if (currentStorefrontId) {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-white font-[var(--font-space-grotesk)]">
-                {userProfile.name}'s Storefront
+                {userProfile?.name}'s Storefront
               </h1>
-              <p className="text-gray-300 mt-1">{userProfile.title}</p>
+              <p className="text-gray-300 mt-1">{userProfile?.title}</p>
             </div>
             <div className="flex items-center gap-4" style={{ position: 'relative', zIndex: 999999 }}>
               <GradientCustomizer
@@ -351,29 +341,29 @@ const HomePage = ({ userProfile, listings, pagination, onPageChange }) => {
       <div className="glass-effect p-8 rounded-2xl text-center">
         <div className="relative w-32 h-32 mx-auto mb-6">
           <img
-            src={userProfile.avatar}
-            alt={userProfile.name}
+            src={userProfile?.avatar}
+            alt={userProfile?.name}
             className="w-full h-full rounded-full object-contain border-4 border-[#39FF14]"
           />
           <div className="absolute -bottom-2 -right-2 bg-[#39FF14] text-black px-3 py-1 rounded-full text-sm font-bold">
-            ⭐ {userProfile.rating}
+            ⭐ {userProfile?.rating}
           </div>
         </div>
         <h2 className="text-4xl font-bold text-white mb-2 font-[var(--font-space-grotesk)]">
-          Welcome to {userProfile.name}'s Store
+          Welcome to {userProfile?.name}'s Store
         </h2>
-        <p className="text-gray-300 text-lg mb-6">{userProfile.bio}</p>
+        <p className="text-gray-300 text-lg mb-6">{userProfile?.bio}</p>
         <div className="flex justify-center gap-8 text-center">
           <div>
-            <div className="text-2xl font-bold text-[#39FF14]">{userProfile.totalSales}</div>
+            <div className="text-2xl font-bold text-[#39FF14]">{userProfile?.totalSales}</div>
             <div className="text-gray-400 text-sm">Total Sales</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-[#39FF14]">{userProfile.followers}</div>
+            <div className="text-2xl font-bold text-[#39FF14]">{userProfile?.followers}</div>
             <div className="text-gray-400 text-sm">Followers</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-[#39FF14]">{userProfile.rating}/5</div>
+            <div className="text-2xl font-bold text-[#39FF14]">{userProfile?.rating}/5</div>
             <div className="text-gray-400 text-sm">Rating</div>
           </div>
         </div>
@@ -509,17 +499,17 @@ const AboutPage = ({ userProfile }) => {
           <div>
             <h2 className="text-4xl font-bold text-white mb-4 font-[var(--font-space-grotesk)]">About Me</h2>
             <p className="text-gray-300 text-lg leading-relaxed mb-6">
-              {userProfile.bio} I've been creating digital experiences for over 8 years, 
+              {userProfile?.bio} I've been creating digital experiences for over 8 years, 
               specializing in innovative solutions that bridge the gap between technology and human connection.
             </p>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <span className="text-[#39FF14]">📍</span>
-                <span className="text-white">{userProfile.location}</span>
+                <span className="text-white">{userProfile?.location}</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-[#39FF14]">📅</span>
-                <span className="text-white">Member since {userProfile.joinedDate}</span>
+                <span className="text-white">Member since {userProfile?.joinedDate}</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-[#39FF14]">🏆</span>
@@ -529,7 +519,7 @@ const AboutPage = ({ userProfile }) => {
           </div>
           <div className="relative">
             <img
-              src={userProfile.coverImage}
+              src={userProfile?.coverImage}
               alt="About cover"
               className="w-full h-64 object-contain rounded-full"
             />
@@ -706,15 +696,15 @@ const ContactPage = ({ userProfile, socialLinks }) => {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <span className="text-[#39FF14]">📧</span>
-                <span className="text-white">{userProfile.email || 'contact@example.com'}</span>
+                <span className="text-white">{userProfile?.email || 'contact@example.com'}</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-[#39FF14]">📱</span>
-                <span className="text-white">{userProfile.phone || '+1 (555) 123-4567'}</span>
+                <span className="text-white">{userProfile?.phone || '+1 (555) 123-4567'}</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-[#39FF14]">📍</span>
-                <span className="text-white">{userProfile.location}</span>
+                <span className="text-white">{userProfile?.location}</span>
               </div>
             </div>
             
