@@ -295,7 +295,7 @@ const handleCopy = () => {
                   </div>
                   <div className="text-center">
                     <h3 className="text-white font-semibold text-lg">Sui Wallet</h3>
-                    <p className="text-gray-400 text-sm">Official Sui wallet</p>
+                    <p className="text-gray-400 text-sm">Use Slush Wallet</p>
                   </div>
                 </div>
               </div>
