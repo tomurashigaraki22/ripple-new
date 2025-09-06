@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { User, LayoutDashboard, Bell, Package, Gift, UserCircle, Briefcase, Link, Palette, Eye, Plus, Edit, Trash2, Save, X } from "lucide-react"
+import { User, LayoutDashboard, Bell, Package, Gift, UserCircle, Briefcase, Link, Palette, Eye, Plus, Edit, Trash2, Save, X, Upload, Camera, Award, Star, GripVertical } from "lucide-react"
 import { useRouter } from "next/navigation"
 import StorefrontSidebar from "../../components/StoreFrontSidebar"
 import { Button } from "../../components/ui/button"
@@ -11,7 +11,7 @@ import { Textarea } from "../../components/ui/textarea"
 import { SelectItem, SelectTrigger, SelectContent, SelectValue, Select } from "../../components/ui/select"
 import { useAuth } from "../../contexts/AuthContext"
 
-const API_BASE_URL = 'https://ripple-flask-server.onrender.com'
+const API_BASE_URL = 'http://172.20.10.2:1234'
 
 export default function StorefrontSettings() {
   const [activeTab, setActiveTab] = useState("account")
@@ -21,13 +21,74 @@ export default function StorefrontSettings() {
   const [saving, setSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const router = useRouter()
+    const [skills, setSkills] = useState([])
 
+
+  const [uploading, setUploading] = useState(false)
   // Account settings state
   const [accountSettings, setAccountSettings] = useState({
     low_stock_alert: true,
     promotional_email_alert: true,
     new_order_alerts: true
   })
+  const [editingSkill, setEditingSkill] = useState(null)
+
+
+  const uploadToCloudinary = (file, type = 'avatar') => {
+    return new Promise((resolve, reject) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET)
+      formData.append('cloud_name', process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME)
+      
+      fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.secure_url) {
+          resolve(data.secure_url)
+        } else {
+          reject(new Error('Upload failed'))
+        }
+      })
+      .catch(error => reject(error))
+    })
+  }
+
+  const handleFileUpload = async (event, type) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file')
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const imageUrl = await uploadToCloudinary(file, type)
+      
+      if (type === 'avatar') {
+        setProfile(prev => ({ ...prev, avatar: imageUrl }))
+      } else if (type === 'cover') {
+        setProfile(prev => ({ ...prev, cover_image: imageUrl }))
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      alert('Failed to upload image. Please try again.')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   // Storefront data states
   const [profile, setProfile] = useState({
@@ -59,6 +120,7 @@ export default function StorefrontSettings() {
   const storefrontOptions = [
     { id: "profile", label: "Profile", icon: UserCircle },
     { id: "services", label: "Services", icon: Briefcase },
+    { id: "skills", label: "Skills", icon: Award },
     { id: "social", label: "Social Links", icon: Link },
     { id: "themes", label: "Themes", icon: Palette },
   ]
@@ -94,6 +156,13 @@ export default function StorefrontSettings() {
           if (profileData.theme) setActiveTheme(profileData.theme)
         }
 
+        const skillsRes = await fetch(`${API_BASE_URL}/storefronts/skills/${user.userId}`)
+        if (skillsRes.ok) {
+          const skillsData = await skillsRes.json()
+          if (skillsData.skills) setSkills(skillsData.skills)
+        }
+      console.log("Skills res: ", skillsRes)
+
       } catch (err) {
         console.error("Failed to fetch storefront data:", err)
       } finally {
@@ -127,16 +196,32 @@ export default function StorefrontSettings() {
   }
 
   // Profile handlers
+  // Profile handlers - Fixed to handle creation
   const handleProfileSave = async () => {
     setSaving(true)
     try {
-      const res = await fetch(`${API_BASE_URL}/storefronts/profile/${user.userId}`, {
+      // First try to update (PUT)
+      let res = await fetch(`${API_BASE_URL}/storefronts/profile/${user.userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(profile)
       })
+      
+      // If profile doesn't exist (404), create it (POST)
+      if (res.status === 404) {
+        res = await fetch(`${API_BASE_URL}/storefronts/profile`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ ...profile, owner_id: user.userId, storefront_id: user.userId })
+        })
+      }
+      
       const data = await res.json()
-      if (data.message) console.log("Profile updated successfully")
+      if (data.message || data.success) {
+        console.log("Profile saved successfully")
+      } else {
+        console.error("Failed to save profile:", data.message)
+      }
     } catch (err) {
       console.error("Error saving profile:", err)
     } finally {
@@ -144,6 +229,260 @@ export default function StorefrontSettings() {
     }
   }
 
+    // Skills handlers
+  const handleSkillSave = async (skillData) => {
+    setSaving(true)
+    try {
+      if (skillData.id) {
+        // Update existing skill
+        const res = await fetch(`${API_BASE_URL}/storefronts/skills/${skillData.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify(skillData)
+        })
+        const data = await res.json()
+        if (data.success || res.ok) {
+          setSkills(prev => prev.map(skill => skill.id === skillData.id ? { ...skillData } : skill))
+          setEditingSkill(null)
+        }
+      } else {
+        // Create new skill
+        const res = await fetch(`${API_BASE_URL}/storefronts/skills`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ 
+            ...skillData, 
+            owner_id: user.userId, 
+            storefront_id: user.userId 
+          })
+        })
+        const data = await res.json()
+        if (data.skill_id || data.id) {
+          const newSkill = { ...skillData, id: data.skill_id || data.id }
+          setSkills(prev => [...prev, newSkill])
+          setEditingSkill(null)
+        }
+      }
+    } catch (err) {
+      console.error("Error saving skill:", err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSkillDelete = async (skillId) => {
+    if (!confirm('Are you sure you want to delete this skill?')) return
+    
+    setSaving(true)
+    try {
+      const res = await fetch(`${API_BASE_URL}/storefronts/skills/${skillId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        setSkills(prev => prev.filter(skill => skill.id !== skillId))
+      }
+    } catch (err) {
+      console.error("Error deleting skill:", err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSkillsReorder = async (reorderedSkills) => {
+    try {
+      const skillsWithOrder = reorderedSkills.map((skill, index) => ({
+        id: skill.id,
+        display_order: index + 1
+      }))
+      
+      const res = await fetch(`${API_BASE_URL}/storefronts/skills/reorder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ skills: skillsWithOrder })
+      })
+      
+      if (res.ok) {
+        setSkills(reorderedSkills)
+      }
+    } catch (err) {
+      console.error("Error reordering skills:", err)
+    }
+  }
+
+
+
+
+    const renderSkillsSection = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-xl font-semibold text-white">Your Skills</h3>
+        <Button 
+          onClick={() => setEditingSkill({ 
+            skill_name: '', 
+            skill_level: 50, 
+            category: '', 
+            years_experience: 1, 
+            is_featured: false 
+          })}
+          className="bg-green-600 hover:bg-green-700"
+        >
+          <Plus className="w-4 h-4 mr-2" /> Add Skill
+        </Button>
+      </div>
+      
+      {editingSkill && (
+        <Card className="bg-[#1a1a1a] border-gray-700 p-6">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-white text-sm font-medium mb-2">Skill Name *</label>
+                <Input
+                  value={editingSkill.skill_name}
+                  onChange={(e) => setEditingSkill(prev => ({ ...prev, skill_name: e.target.value }))}
+                  className="bg-[#111] border-gray-600 text-white"
+                  placeholder="e.g., Python, React, Design"
+                />
+              </div>
+              <div>
+                <label className="block text-white text-sm font-medium mb-2">Category</label>
+                <Input
+                  value={editingSkill.category}
+                  onChange={(e) => setEditingSkill(prev => ({ ...prev, category: e.target.value }))}
+                  className="bg-[#111] border-gray-600 text-white"
+                  placeholder="e.g., Programming, Design, Marketing"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-white text-sm font-medium mb-2">
+                  Skill Level: {editingSkill.skill_level}%
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={editingSkill.skill_level}
+                  onChange={(e) => setEditingSkill(prev => ({ ...prev, skill_level: parseInt(e.target.value) }))}
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>Beginner</span>
+                  <span>Expert</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-white text-sm font-medium mb-2">Years of Experience</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={editingSkill.years_experience}
+                  onChange={(e) => setEditingSkill(prev => ({ ...prev, years_experience: parseInt(e.target.value) }))}
+                  className="bg-[#111] border-gray-600 text-white"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="is_featured"
+                checked={editingSkill.is_featured}
+                onChange={(e) => setEditingSkill(prev => ({ ...prev, is_featured: e.target.checked }))}
+                className="w-4 h-4 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-500"
+              />
+              <label htmlFor="is_featured" className="text-white text-sm">
+                Feature this skill (show prominently on profile)
+              </label>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => handleSkillSave(editingSkill)} 
+                disabled={saving || !editingSkill.skill_name}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Save className="w-4 h-4 mr-2" /> {saving ? "Saving..." : "Save Skill"}
+              </Button>
+              <Button 
+                onClick={() => setEditingSkill(null)} 
+                variant="outline"
+                className="border-gray-600 text-white hover:bg-gray-800"
+              >
+                <X className="w-4 h-4 mr-2" /> Cancel
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+      
+      <div className="grid gap-4">
+        {skills.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            <Award className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No skills added yet. Add your first skill to showcase your expertise!</p>
+          </div>
+        ) : (
+          skills.map((skill, index) => (
+            <Card key={skill.id || index} className="bg-[#1a1a1a] border-gray-700 p-4">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h4 className="text-white font-semibold">{skill.skill_name}</h4>
+                    {skill.is_featured && (
+                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    )}
+                  </div>
+                  <p className="text-gray-400 text-sm mb-2">{skill.category}</p>
+                  <div className="flex items-center gap-4 text-sm text-gray-300">
+                    <span>{skill.years_experience} years experience</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-green-500 transition-all duration-300"
+                          style={{ width: `${skill.skill_level}%` }}
+                        />
+                      </div>
+                      <span>{skill.skill_level}%</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => setEditingSkill(skill)} 
+                    variant="outline" 
+                    size="sm"
+                    className="border-gray-600 text-white hover:bg-gray-800"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    onClick={() => handleSkillDelete(skill.id)} 
+                    variant="outline" 
+                    size="sm"
+                    className="border-red-600 text-red-400 hover:bg-red-900/20"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+      
+      {skills.length > 1 && (
+        <div className="text-center">
+          <p className="text-gray-400 text-sm">
+            💡 Tip: You can drag and drop skills to reorder them (feature coming soon)
+          </p>
+        </div>
+      )}
+    </div>
+  )
   // Service handlers
   const handleServiceSave = async (serviceData) => {
     setSaving(true)
@@ -198,6 +537,101 @@ export default function StorefrontSettings() {
   // Render different sections
   const renderProfileSection = () => (
     <div className="space-y-6">
+      <div className="space-y-4">
+        <h4 className="text-lg font-semibold text-white">Profile Images</h4>
+        
+        {/* Avatar Upload */}
+        <div className="flex items-center space-x-6">
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-700 border-2 border-gray-600">
+              {profile.avatar ? (
+                <img 
+                  src={profile.avatar} 
+                  alt="Avatar" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <UserCircle className="w-12 h-12 text-gray-400" />
+                </div>
+              )}
+            </div>
+            {uploading && (
+              <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+              </div>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <label className="block text-white text-sm font-medium">Profile Picture</label>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => document.getElementById('avatar-upload').click()}
+                disabled={uploading}
+                className="bg-blue-600 hover:bg-blue-700"
+                size="sm"
+              >
+                <Camera className="w-4 h-4 mr-2" />
+                {uploading ? 'Uploading...' : 'Change Avatar'}
+              </Button>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileUpload(e, 'avatar')}
+                className="hidden"
+              />
+            </div>
+            <p className="text-xs text-gray-400">Recommended: Square image, max 5MB</p>
+          </div>
+        </div>
+
+        {/* Cover Image Upload */}
+        <div className="space-y-2">
+          <label className="block text-white text-sm font-medium">Cover Image</label>
+          <div className="relative">
+            <div className="w-[40%] h-32 rounded-lg overflow-hidden bg-gray-700 border-2 border-gray-600">
+              {profile.cover_image ? (
+                <img 
+                  src={profile.cover_image} 
+                  alt="Cover" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Upload className="w-8 h-8 text-gray-400" />
+                </div>
+              )}
+            </div>
+            {uploading && (
+              <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex gap-2">
+            <Button
+              onClick={() => document.getElementById('cover-upload').click()}
+              disabled={uploading}
+              className="bg-blue-600 hover:bg-blue-700"
+              size="sm"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {uploading ? 'Uploading...' : 'Change Cover'}
+            </Button>
+            <input
+              id="cover-upload"
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleFileUpload(e, 'cover')}
+              className="hidden"
+            />
+          </div>
+          <p className="text-xs text-gray-400">Recommended: 16:9 aspect ratio, max 5MB</p>
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-white text-sm font-medium mb-2">Name *</label>
@@ -228,24 +662,6 @@ export default function StorefrontSettings() {
           />
         </div>
         <div>
-          <label className="block text-white text-sm font-medium mb-2">Avatar URL</label>
-          <Input
-            value={profile.avatar}
-            onChange={(e) => setProfile(prev => ({ ...prev, avatar: e.target.value }))}
-            className="bg-[#1a1a1a] border-gray-700 text-white"
-            placeholder="https://..."
-          />
-        </div>
-        <div>
-          <label className="block text-white text-sm font-medium mb-2">Cover Image URL</label>
-          <Input
-            value={profile.cover_image}
-            onChange={(e) => setProfile(prev => ({ ...prev, cover_image: e.target.value }))}
-            className="bg-[#1a1a1a] border-gray-700 text-white"
-            placeholder="https://..."
-          />
-        </div>
-        <div>
           <label className="block text-white text-sm font-medium mb-2">Location</label>
           <Input
             value={profile.location}
@@ -261,6 +677,15 @@ export default function StorefrontSettings() {
             onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
             className="bg-[#1a1a1a] border-gray-700 text-white"
             placeholder="contact@example.com"
+          />
+        </div>
+        <div>
+          <label className="block text-white text-sm font-medium mb-2">Phone</label>
+          <Input
+            value={profile.phone}
+            onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+            className="bg-[#1a1a1a] border-gray-700 text-white"
+            placeholder="+1 (555) 123-4567"
           />
         </div>
       </div>
@@ -589,6 +1014,7 @@ export default function StorefrontSettings() {
     switch (activeOption) {
       case "profile": return renderProfileSection()
       case "services": return renderServicesSection()
+      case "skills": return renderSkillsSection()
       case "social": return renderSocialSection()
       case "themes": return renderThemesSection()
       default: return null
