@@ -11,7 +11,7 @@ import { Textarea } from "../../components/ui/textarea"
 import { SelectItem, SelectTrigger, SelectContent, SelectValue, Select } from "../../components/ui/select"
 import { useAuth } from "../../contexts/AuthContext"
 
-const API_BASE_URL = 'http://172.20.10.2:1234'
+const API_BASE_URL = 'https://ripple-flask-server.onrender.com'
 
 export default function StorefrontSettings() {
   const [activeTab, setActiveTab] = useState("account")
