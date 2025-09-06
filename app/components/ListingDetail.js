@@ -10,12 +10,16 @@ import PaymentProcessingModal from "./PaymentProcessingModal"
 import { useMetamask } from "../contexts/MetaMaskContext"
 import { useXRPL } from "../contexts/XRPLContext"
 import { useAuth } from "../contexts/AuthContext"
+import { iconsNetworks } from "../../lib/icons"
 import { usePhantom } from "../contexts/PhantomContext"
+import { useSui } from "../contexts/SuiContext"
 import { ethers } from "ethers"
 import { sendEthereumPayment } from "../../lib/ethPayment"
 import { sendXRPLXRPBPayment } from "../../lib/productPaymentHelper"
 import { getAllXRPBPrices } from "../../lib/getXRPBPrices"
 import { sendSolanaPayment } from "../../lib/solPayment"
+import { processPayment } from "../../lib/suiPaymentHelper"
+import { useRouter } from "next/navigation"
 
 export default function ListingDetail({ listing }) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
@@ -26,10 +30,12 @@ export default function ListingDetail({ listing }) {
   const [orderProcessing, setOrderProcessing] = useState(false)
   const [solPrice, setsolPrice] = useState(null)
   const [ethPrice, setEthPrice] = useState(null)
+  const [suiPrice, setSuiPrice] = useState(null)
   
   // Add shipping state variables
   const [shippingRates, setShippingRates] = useState([])
   const [selectedShippingCost, setSelectedShippingCost] = useState(0)
+  const router = useRouter()
 
   const { user } = useAuth()
   const [priceLoadingStates, setPriceLoadingStates]= useState({
@@ -75,6 +81,14 @@ export default function ListingDetail({ listing }) {
     connectXrpWallet,
     disconnectXrpWallet,
   } = useXRPL()
+  const {
+    address: suiAddress,
+    connected: suiConnected,
+    balance: suiBalance,
+    connect: connectSui,
+    disconnect: disconnectSui,
+    loading: suiLoading
+  } = useSui()
 
 
   useEffect(() => {
@@ -90,6 +104,11 @@ export default function ListingDetail({ listing }) {
         const ethResp = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")
         const ethData = await ethResp.json()
         setEthPrice(ethData.ethereum.usd)
+        
+        // fetch SUI/USD from Coingecko
+        const suiResp = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=sui&vs_currencies=usd")
+        const suiData = await suiResp.json()
+        setSuiPrice(suiData.sui.usd)
       } catch (err) {
         console.error(err)
       }
@@ -299,6 +318,10 @@ export default function ListingDetail({ listing }) {
 
   // ✅ Updated function to calculate shipping costs using listing.shipping_from
   const calculateShippingCosts = async (validatedAddress) => {
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
     try {
       // Use listing.shipping_from for shipFrom
       const shipFrom = {
@@ -443,6 +466,9 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
     case "ethereum":
       rate = ethPrice;
       break;
+    case "sui":
+      rate = suiPrice;
+      break;
     default:
       console.warn(`Unsupported chain type: ${chainType}`);
       rate = 1;
@@ -489,12 +515,16 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
         // ✅ From Phantom / Solana context
         walletForPayment = { connection, publicKey, connected, sendTransaction };
       }
+      else if (chainType === 'sui') {
+        // ✅ From Sui context
+        walletForPayment = { address: suiAddress, connected: suiConnected, balance: suiBalance };
+      }
       else throw new Error(`Unsupported chain type: ${chainType}`)
 
       setPaymentResult({ message: "Sending payment..." })
 
       let paymentResp
-      const mappedChain = chainType === 'evm' ? 'xrpl_evm' : 'xrpl'
+      const mappedChain = chainType === 'evm' ? 'xrpl_evm' : chainType === 'sui' ? 'sui' : 'xrpl'
 
       if (chainType === 'xrpl') {
         paymentResp = await sendXRPLXRPBPayment({account: xrpWalletAddress}, process.env.NEXT_PUBLIC_ESCROW_XRPL_WALLET, amount, "5852504200000000000000000000000000000000",
@@ -621,12 +651,38 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
           connection,
           "xrpb-sol" // 👈 type is explicitly "xrpb-sol"
         );
+      } else if (chainType === "sui") {
+        // ✅ Sui payment using suiPaymentHelper
+        const suiContext = {
+          address: suiAddress,
+          connected: suiConnected,
+          balance: suiBalance,
+          executeTransaction: async (tx) => {
+            // Use the executeTransaction from SuiContext
+            const { executeTransaction } = require('../contexts/SuiContext');
+            return executeTransaction(tx);
+          }
+        };
+        
+        paymentResp = await processPayment({
+          walletContext: suiContext,
+          recipient: process.env.NEXT_PUBLIC_SUI_ESCROW_ADDRESS || '0x...', // Add your Sui escrow address
+          amount: amount,
+          description: `Payment for ${listing.title}`,
+          onProgress: (message) => {
+            setPaymentResult({ message });
+          },
+          onSuccess: (result) => {
+            console.log('Sui payment successful:', result);
+          },
+          onError: (error) => {
+            console.error('Sui payment failed:', error);
+          }
+        });
       }
       
-      
-
       if (!paymentResp.success) throw new Error(paymentResp.error || 'Payment failed')
-      setPaymentResult({ message: "Payment successful!", txHash: paymentResp.txHash || paymentResp.signature, showQR: paymentResp.showQR, qrCode: paymentResp.qrCode, btcAddress: paymentResp.btcAddress, btcAmount: paymentResp.btcAmount })
+      setPaymentResult({ message: "Payment successful!", txHash: paymentResp.txHash || paymentResp.signature || paymentResp.transactionDigest, showQR: paymentResp.showQR, qrCode: paymentResp.qrCode, btcAddress: paymentResp.btcAddress, btcAmount: paymentResp.btcAmount })
 
       // Create escrow
       setPaymentResult({ message: "Creating escrow..." })
@@ -647,7 +703,7 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
             auto_release_days: 20
           },
           listingId: listing.id,
-          transactionHash: paymentResp.txHash || paymentResp.signature,
+          transactionHash: paymentResp.txHash || paymentResp.signature || paymentResp.transactionDigest,
           paymentVerified: true
         })
       })
@@ -1014,14 +1070,14 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
             name: "XRPB (EVM)",
             currency: "XRPB",
             address: evmWallet,
-            icon: "🟢",
+            icon: iconsNetworks["xrpl-evm"],
           })
           paymentOptions.push({
             type: "ethereum",
             name: "Ethereum (Mainnet)",
             currency: "ETH",
             address: evmWallet,
-            icon: "⚪",
+            icon: iconsNetworks.eth,
           })
         }
 
@@ -1031,14 +1087,24 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
             name: "Solana (SOL)",
             currency: "SOL",
             address: publicKey.toString(),
-            icon: "🟣",
+            icon: iconsNetworks.sol,
           })
           paymentOptions.push({
             type: "xrpb-sol",
             name: "XRPB-SOL (SOL)",
             currency: "XRPB-SOL",
             address: publicKey.toString(),
-            icon: "🟣",
+            icon: iconsNetworks["xrpb-sol"],
+          })
+        }
+
+        if (suiAddress && suiConnected) {
+          paymentOptions.push({
+            type: "sui",
+            name: "Sui Network",
+            currency: "SUI",
+            address: suiAddress,
+            icon: iconsNetworks.sui,
           })
         }
   
@@ -1048,7 +1114,7 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
             name: "XRPB (XRPL)",
             currency: "XRPB",
             address: xrpWalletAddress,
-            icon: "🔵",
+            icon: iconsNetworks.xrpl,
           })
 
           // if (address && isConnected) {
@@ -1122,7 +1188,11 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
-                              <span className="text-2xl">{wallet.icon}</span>
+                              <img 
+                                src={wallet.icon} 
+                                alt={wallet.currency} 
+                                className="w-7 h-7 rounded-full object-contain"
+                              />
                               <div>
                                 <p className="text-white font-semibold text-sm">{wallet.name}</p>
                                 <p className="text-gray-400 text-xs font-mono">
@@ -1133,11 +1203,12 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
                                 )}
                               </div>
                             </div>
+
                             <div className="text-right">
                               <p className="text-[#39FF14] font-bold text-sm">
                                 {amountStr} {wallet.currency}
                               </p>
-                              <p className="text-gray-400 text-xs">≈ ${listing?.price} USD</p>
+                              <p className="text-gray-400 text-xs">≈ ${parseFloat(listing?.price).toFixed(2)} USD</p>
                             </div>
                           </div>
                         </div>
@@ -1178,6 +1249,7 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
                          selectedPaymentMethod.type === 'solana' ? 'SOL Price:' :
                          selectedPaymentMethod.type === 'xrpb-sol' ? 'XRPB-SOL Price:' :
                          selectedPaymentMethod.type === 'xrpl' ? 'XRPL Price:' :
+                         selectedPaymentMethod.type === 'sui' ? "Sui Price":
                          'XRPB Price:'}
                       </span>
                       <span className="text-[#39FF14]">
@@ -1187,6 +1259,7 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
                                          selectedPaymentMethod.type === 'solana' ? 'SOL' :
                                          selectedPaymentMethod.type === 'xrpb-sol' ? 'XRPB-SOL' :
                                          selectedPaymentMethod.type === 'xrpl' ? 'XRP' :
+                                         selectedPaymentMethod.type === 'sui' ? 'SUI' :
                                          'XRPB';
                           return amount ? `${amount.toFixed(6)} ${currency}` : "N/A";
                         })()} 
@@ -1226,8 +1299,8 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-400">Service Fee:</span>
                       <span className="text-gray-300">
-                        {user.membership_tier_id === 1 ? '3.5%' :
-                         user.membership_tier_id === 2 ? '2.5%' : '1.5%'}
+                        {user?.membership_tier_id === 1 ? '3.5%' :
+                         user?.membership_tier_id === 2 ? '2.5%' : '1.5%'}
                       </span>
                     </div>
                     
@@ -1243,6 +1316,7 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
                                          selectedPaymentMethod.type === 'solana' ? 'SOL' :
                                          selectedPaymentMethod.type === 'xrpb-sol' ? 'XRPB-SOL' :
                                          selectedPaymentMethod.type === 'xrpl' ? 'XRP' :
+                                         selectedPaymentMethod.type === 'sui' ? 'SUI' :
                                          'XRPB';
                           return `${totalAmount.toFixed(6)} ${currency}`;
                         })()} 
