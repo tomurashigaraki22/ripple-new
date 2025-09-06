@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 
 const GradientCustomizer = ({ gradientColors, isReadOnly = false, userId, onGradientChange }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
+  const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 30 });
   const [localGradient, setLocalGradient] = useState(gradientColors);
 
   const presetGradients = [
@@ -57,7 +57,7 @@ const GradientCustomizer = ({ gradientColors, isReadOnly = false, userId, onGrad
       const rect = e.currentTarget.getBoundingClientRect();
       setButtonPosition({
         top: rect.bottom + 8,
-        left: rect.right - 320 // 320px is popup width
+        left: rect.right - 240 // 320px is popup width
       });
     }
     setIsOpen(!isOpen);

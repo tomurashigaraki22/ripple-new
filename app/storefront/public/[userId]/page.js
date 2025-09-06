@@ -291,7 +291,7 @@ if (currentStorefrontId) {
       {/* Main Content */}
       <div className={`transition-all duration-300 ${sidebarOpen ? 'lg:ml-80' : 'lg:ml-20'} min-h-screen`}>
         {/* Header */}
-        <header className="glass-effect-light p-6 m-4 rounded-2xl" style={{ position: 'relative' }}>
+        <header className="glass-effect-light p-6 m-4 rounded-2xl pt-20 lg:pt-0" style={{ position: 'relative',zIndex: 99999999 }}>
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-white font-[var(--font-space-grotesk)]">
@@ -317,7 +317,7 @@ if (currentStorefrontId) {
         </header>
 
         {/* Content Area */}
-        <div className="p-4" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="p-4" style={{ position: 'relative', zIndex: 0 }}>
           {renderContent()}
         </div>
       </div>
