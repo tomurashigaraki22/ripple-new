@@ -48,14 +48,16 @@ export default function XRPLWalletConnect() {
     connecting: metMaskConnecting,
   } = useMetamask();
   
-  // Sui wallet context
+  // Sui wallet context with mobile detection
   const {
     connected: suiConnected,
     connecting: suiConnecting,
     suiAddress,
     balance: suiBalance,
     connect: connectSui,
-    disconnect: disconnectSui
+    disconnect: disconnectSui,
+    isMobileDevice,
+    isInWalletBrowser
   } = useSui();
 
 const handleCopy = () => {
@@ -101,6 +103,25 @@ const handleCopy = () => {
           </p>
         </div>
       </div>
+
+      {/* Mobile Warning Banner */}
+      {isMobileDevice && !isInWalletBrowser && (
+        <div className="max-w-6xl mx-auto mb-6">
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-5 h-5 text-yellow-500">⚠️</div>
+              <div>
+                <p className="text-yellow-500 font-medium text-sm">
+                  Mobile Device Detected
+                </p>
+                <p className="text-yellow-400 text-xs mt-1">
+                  For Sui wallet connection, you'll be redirected to Slush wallet app
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Wallet Cards */}
       <div className="max-w-6xl mx-auto">
@@ -295,12 +316,13 @@ const handleCopy = () => {
                   </div>
                   <div className="text-center">
                     <h3 className="text-white font-semibold text-lg">Sui Wallet</h3>
-                    <p className="text-gray-400 text-sm">Use Slush Wallet</p>
+                    <p className="text-gray-400 text-sm">
+                      {isMobileDevice ? "Opens Slush Wallet" : "Use Slush Wallet"}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* In the Sui Wallet Card section, replace the ConnectButton with: */}
               {suiConnected && suiAddress ? (
                 <div className="mb-4">
                   <div className="flex items-center space-x-2 text-gray-200 text-sm">
@@ -337,8 +359,15 @@ const handleCopy = () => {
                     disabled={suiConnecting}
                     className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 border-0 rounded-xl font-medium px-8 py-3 hover:shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 text-white"
                   >
-                    {suiConnecting ? "Connecting..." : "Connect Sui Wallet"}
+                    {suiConnecting ? "Connecting..." : 
+                     isMobileDevice ? "Open Slush Wallet" : "Connect Sui Wallet"}
                   </Button>
+                  
+                  {isMobileDevice && (
+                    <p className="text-xs text-gray-400 text-center">
+                      Will redirect to Slush wallet app
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>
