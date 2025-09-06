@@ -49,8 +49,8 @@ function SuiContextContent({ children }) {
       // If on mobile and not in wallet browser, redirect to Slush wallet
       if (isMobileDevice && !isInWalletBrowser) {
         const currentUrl = encodeURIComponent(window.location.href);
-        const slushDeepLink = `slush://dapp?url=${encodeURIComponent(currentUrl)}`;
-        const slushWebLink = `https://slush.so/dapp?url=${encodeURIComponent(currentUrl)}`;
+        const slushDeepLink = `slush://dapp?url=${currentUrl}`;
+        const slushWebLink = `https://slush.so/dapp?url=${currentUrl}`;
         
         // Try deep link first, fallback to web link
         window.location.href = slushDeepLink;
