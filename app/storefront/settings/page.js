@@ -1021,7 +1021,13 @@ export default function StorefrontSettings() {
     }
   }
 
-  if (loading) return <div className="text-white p-8">Loading settings...</div>
+if (loading) {
+  return (
+    <div className="flex items-center justify-center h-screen bg-black">
+      <div className="w-12 h-12 border-3 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
+}
 
   return (
     <div className="flex min-h-screen bg-[#111111] overflow-hidden">

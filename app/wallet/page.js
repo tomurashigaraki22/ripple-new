@@ -10,12 +10,17 @@ import { useXRPL } from "../contexts/XRPLContext" // adjust path
 import { useMetamask } from "../contexts/MetaMaskContext"
 import copy from "copy-to-clipboard"
 import { usePhantom } from "../contexts/PhantomContext"
+import { useSui } from "../contexts/SuiContext"
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
+// Remove this import: import { ConnectButton } from "@mysten/dapp-kit"
+
 
 export default function XRPLWalletConnect() {
   const { connectXrpWallet, xrpWalletAddress, xrpBalance, xrpbBalance, disconnectXrpWallet } = useXRPL()
   const [connecting, setConnecting] = useState(false)
   const [copied, setCopied] = useState(false);
+  const [suiCopied, setSuiCopied] = useState(false);
+  const [phantomCopied, setPhantomCopied] = useState(false);
   const {
     publicKey,
     connected,
@@ -43,11 +48,29 @@ export default function XRPLWalletConnect() {
     connecting: metMaskConnecting,
   } = useMetamask();
   
+  // Sui wallet context
+  const {
+    connected: suiConnected,
+    connecting: suiConnecting,
+    suiAddress,
+    balance: suiBalance,
+    connect: connectSui,
+    disconnect: disconnectSui
+  } = useSui();
 
-  const handleCopy = () => {
-    if (xrpWalletAddress) {
-      copy(xrpWalletAddress);
-      alert("Copied!");
+const handleCopy = () => {
+  if (xrpWalletAddress) {
+    copy(xrpWalletAddress);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+};
+  
+  const handleCopySui = () => {
+    if (suiAddress) {
+      copy(suiAddress);
+      setSuiCopied(true);
+      setTimeout(() => setSuiCopied(false), 2000);
     }
   };
   
@@ -72,16 +95,17 @@ export default function XRPLWalletConnect() {
         </Link>
 
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">Connect XRPL Wallet</h1>
+          <h1 className="text-4xl font-bold text-white mb-4">Connect Wallets</h1>
           <p className="text-gray-400 text-lg">
-            Connect your Xaman/XUMM wallet to manage XRP and XRPB tokens.
+            Connect your preferred wallet to manage your digital assets.
           </p>
         </div>
       </div>
 
-      {/* XRPL Wallet Card */}
-      <div className="max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Wallet Cards */}
+      <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* XRPL Wallet Card */}
           <Card
             className="group relative overflow-hidden border-gray-700 hover:border-blue-500/50 transition-all duration-300 glass-effect-dark"
             style={{
@@ -96,7 +120,7 @@ export default function XRPLWalletConnect() {
                 <div className="w-12 h-12 mb-2">
                     <img
                       src="https://cdn.prod.website-files.com/614c99cf4f23700c8aa3752a/6776d776ea74135b0ecab4e9_Xaman.png"
-                      alt="Phantom"
+                      alt="Xaman"
                       className="w-full h-full object-contain rounded-full"
                     />
                   </div>
@@ -134,10 +158,10 @@ export default function XRPLWalletConnect() {
               ) : (
                 <Button
                   onClick={handleConnect}
-                  disabled={metMaskConnecting}
+                  disabled={connecting}
                   className="w-full bg-blue-500 hover:bg-blue-600 text-black font-medium"
                 >
-                  {metMaskConnecting ? "Connecting..." : "Connect Wallet"}
+                  {connecting ? "Connecting..." : "Connect Wallet"}
                 </Button>
               )}
             </CardContent>
@@ -146,6 +170,7 @@ export default function XRPLWalletConnect() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           </Card>
 
+          {/* MetaMask Wallet Card */}
           <Card
             className="group relative overflow-hidden border-gray-700 hover:border-orange-500/50 transition-all duration-300 glass-effect-dark"
             style={{
@@ -192,14 +217,6 @@ export default function XRPLWalletConnect() {
                       <span className="text-green-400 text-xs">Copied!</span>
                     )}
                   </div>
-                  {/* <p className="text-gray-200 text-sm">ETH Balance: {ethBalance}</p>
-                  <p className="text-gray-200 text-sm">USDT Balance: {usdtBalance}</p>
-                  <Button
-                    onClick={() => switchToChain("0x15f900")}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium mt-4"
-                  >
-                    Switch To XRPL Testnet (EVM)
-                  </Button> */}
                   <Button
                     onClick={disconnectMetamaskWallet}
                     className="w-full bg-red-600 hover:bg-red-700 text-white font-medium mt-4"
@@ -210,10 +227,10 @@ export default function XRPLWalletConnect() {
               ) : (
                 <Button
                   onClick={connectMetamaskWallet}
-                  disabled={connecting}
+                  disabled={metMaskConnecting}
                   className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium"
                 >
-                  {connecting ? "Connecting..." : "Connect MetaMask"}
+                  {metMaskConnecting ? "Connecting..." : "Connect MetaMask"}
                 </Button>
               )}
             </CardContent>
@@ -221,6 +238,7 @@ export default function XRPLWalletConnect() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           </Card>
 
+          {/* Phantom Wallet Card */}
           <Card
             className="group relative overflow-hidden border-gray-700 hover:border-purple-500/50 transition-all duration-300 glass-effect-dark"
             style={{
@@ -256,6 +274,78 @@ export default function XRPLWalletConnect() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           </Card>
 
+          {/* Sui Wallet Card */}
+          <Card
+            className="group relative overflow-hidden border-gray-700 hover:border-cyan-500/50 transition-all duration-300 glass-effect-dark"
+            style={{
+              background: "rgba(255, 255, 255, 0.05)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+            }}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-center mb-4">
+                <div className="flex flex-col items-center space-x-3">
+                  <div className="w-12 h-12 mb-2">
+                    <img
+                      src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTiWm1KZXfEwz-MXrPsoAMqH88zDDKO96VB7Q&s"
+                      alt="Sui"
+                      className="w-full h-full object-contain rounded-full"
+                    />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-white font-semibold text-lg">Sui Wallet</h3>
+                    <p className="text-gray-400 text-sm">Official Sui wallet</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* In the Sui Wallet Card section, replace the ConnectButton with: */}
+              {suiConnected && suiAddress ? (
+                <div className="mb-4">
+                  <div className="flex items-center space-x-2 text-gray-200 text-sm">
+                    <p className="truncate overflow-hidden whitespace-nowrap">
+                      Connected: {suiAddress}
+                    </p>
+                    <button
+                      onClick={handleCopySui}
+                      className="p-1 rounded hover:bg-gray-700 transition-colors"
+                      title="Copy address"
+                    >
+                      <Clipboard
+                        className={`w-4 h-4 ${
+                          suiCopied ? "text-cyan-400" : "text-gray-400"
+                        }`}
+                      />
+                    </button>
+                    {suiCopied && (
+                      <span className="text-cyan-400 text-xs">Copied!</span>
+                    )}
+                  </div>
+                  <p className="text-gray-200 text-sm">SUI Balance: {suiBalance?.toFixed(4) || '0'}</p>
+                  <Button
+                    onClick={disconnectSui}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-medium mt-4"
+                  >
+                    Disconnect
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <Button
+                    onClick={connectSui}
+                    disabled={suiConnecting}
+                    className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 border-0 rounded-xl font-medium px-8 py-3 hover:shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 text-white"
+                  >
+                    {suiConnecting ? "Connecting..." : "Connect Sui Wallet"}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          </Card>
+
         </div>
 
         {/* Footer Info */}
@@ -270,36 +360,11 @@ export default function XRPLWalletConnect() {
           >
             <h3 className="text-white font-semibold mb-2">Secure Connection</h3>
             <p className="text-gray-400 text-sm max-w-md">
-              Your wallet connection is encrypted and secure. RippleBids never stores your private keys or seed phrases.
+              Your wallet connections are encrypted and secure. RippleBids never stores your private keys or seed phrases.
             </p>
           </div>
         </div>
       </div>
-
-      {/* MetaMask Wallet Card */}
-      {/* <div className="max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-        </div>
-
-        <div className="mt-12 text-center glass-effect-dark p-6 rounded-lg">
-          <div
-            className="inline-block p-6 rounded-lg border border-gray-700"
-            style={{
-              background: "rgba(255, 255, 255, 0.05)",
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-            }}
-          >
-            <h3 className="text-white font-semibold mb-2">Secure Connection</h3>
-            <p className="text-gray-400 text-sm max-w-md">
-              Your MetaMask connection is encrypted and secure. RippleBids never
-              stores your private keys or seed phrases.
-            </p>
-          </div>
-        </div>
-      </div> */}
-
     </div>
   )
 }

@@ -10,6 +10,7 @@ import { XRPLProvider } from "./contexts/XRPLContext";
 import { MetamaskProvider } from "./contexts/MetaMaskContext";
 import { EvmProvider } from "./contexts/XRPBEvmContext";
 import { PhantomProvider } from "./contexts/PhantomContext";
+import { SuiProvider } from "./contexts/SuiContext";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -57,12 +58,14 @@ export default async function RootLayout({ children }) {
           {/* <SmoothScrollProvider> */}
             <EvmProvider>
             <PhantomProvider>
+              <SuiProvider>
 
             {/* Banner rendered server-side (component is client but receives prop) */}
             <MaintenanceBanner isActive={isMaintenance} />
             <Navbar />
             {children}
             <Footer />
+            </SuiProvider>
             </PhantomProvider>
 
           </EvmProvider>
