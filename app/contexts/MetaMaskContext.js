@@ -168,17 +168,54 @@ const switchToXRPLEVM = async () => {
   // Create ethers signer from wallet client
 
 const getSigner = async () => {
+  // First check if we have a wallet client from Wagmi
   if (!walletClient) {
-    throw new Error('Wallet not connected');
+    console.log('No wallet client from Wagmi, checking direct connection...');
+    
+    // Fallback: Check if MetaMask is available directly
+    if (typeof window !== 'undefined' && window.ethereum) {
+      try {
+        // Request account access if needed
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length === 0) {
+          // Try to connect if no accounts
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+        }
+        
+        // Create provider directly from window.ethereum
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        console.log('Created signer via direct ethereum provider');
+        return signer;
+      } catch (error) {
+        console.error('Direct ethereum provider failed:', error);
+      }
+    }
+    
+    throw new Error('Wallet not connected - please connect your wallet first');
   }
 
-  // Convert viem WalletClient to an EIP-1193 compatible provider for ethers
-  let signer;
-  if (walletClient) {
+  try {
+    // Convert viem WalletClient to ethers provider
     const provider = new ethers.BrowserProvider(walletClient);
-    signer = await provider.getSigner();
+    const signer = await provider.getSigner();
+    return signer;
+  } catch (error) {
+    console.error('Failed to create signer from wallet client:', error);
+    
+    // Fallback to direct ethereum provider
+    if (typeof window !== 'undefined' && window.ethereum) {
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        return signer;
+      } catch (fallbackError) {
+        console.error('Fallback provider also failed:', fallbackError);
+      }
+    }
+    
+    throw new Error('Unable to create signer - wallet connection issue');
   }
-  return signer;
 };
 
   const value = {

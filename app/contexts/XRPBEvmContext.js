@@ -149,7 +149,7 @@ const connectMetamaskWallet = async () => {
 
 const getSigner = async () => {
   if (!walletClient) {
-    throw new Error('Wallet not connected');
+    throw new Error('Wallet not connected (XRPBEVM)');
   }
 
   // Convert viem WalletClient to an EIP-1193 compatible provider for ethers
