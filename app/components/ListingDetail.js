@@ -567,7 +567,7 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
           decimals = await erc20.decimals()
           symbol = await erc20.symbol();
         } catch (err){
-          throw new Error("Token contract not available on this chain")
+          throw new Error("Token contract not available on this chain lisstign  detila")
         }
 
          const amountInWei = ethers.parseUnits(amount.toString(), decimals);

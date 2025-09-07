@@ -243,7 +243,7 @@ useEffect(() => {
         decimals = await erc20.decimals();
         symbol = await erc20.symbol();
       } catch (err) {
-        throw new Error("Token contract not available on this chain");
+        throw new Error("Token contract not available on this chain modal: ", err);
       }
   
       // ✅ Convert ethAmount into smallest unit
