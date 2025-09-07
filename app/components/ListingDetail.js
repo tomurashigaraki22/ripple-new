@@ -1207,6 +1207,9 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
                                 {wallet.type === "evm" && !isXRPLEVM && (
                                   <p className="text-yellow-400 text-xs">⚠️ Network switch required</p>
                                 )}
+                                {wallet.type === "ethereum" && isXRPLEVM && (
+                                  <p className="text-yellow-400 text-xs">⚠️ Network switch required</p>
+                                )}
                               </div>
                             </div>
 
