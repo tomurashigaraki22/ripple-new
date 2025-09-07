@@ -357,7 +357,7 @@ const [loadingMembership, setLoadingMembership] = useState(true)
                         {tier.fee} fee
                       </Badge>
                       <Badge variant="outline" className="text-gray-300 border-gray-600 ml-2">
-                        $ {tier.price} /month
+                        {tier.price} /month
                       </Badge>
                     </div>
                   </div>

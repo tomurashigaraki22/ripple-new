@@ -116,7 +116,7 @@ export default function StorefrontAnalytics() {
             <div className="space-y-6 sm:space-y-8">
               <ResponsiveGraph
                 title="Revenue Analytics"
-                data={analytics.monthlyData?.map(d => ({ date: d.month, revenue: d.earnings })) || []}
+                // data={analytics.monthlyData?.map(d => ({ date: d.month, revenue: d.earnings })) || []}
                 xData="date"
                 yData="revenue"
                 timeframe="monthly"
