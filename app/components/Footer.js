@@ -26,7 +26,6 @@ const Footer = () => {
             <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2">
               <li><Link href="/marketplace" className="text-gray-400 hover:text-[#39FF14]">Marketplace</Link></li>
-              <li><Link href="/about" className="text-gray-400 hover:text-[#39FF14]">About</Link></li>
               <li><Link href="/auth/login" className="text-gray-400 hover:text-[#39FF14]">Sign In</Link></li>
             </ul>
           </div>
@@ -45,8 +44,8 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold mb-4">Community</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-[#39FF14]">Discord</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-[#39FF14]">Twitter</a></li>
+              <li><a href="https://discord.gg/jFJC53E6" className="text-gray-400 hover:text-[#39FF14]">Discord</a></li>
+              <li><a href="https://x.com/RippleBids" className="text-gray-400 hover:text-[#39FF14]">Twitter</a></li>
               <li><a href="#" className="text-gray-400 hover:text-[#39FF14]">Telegram</a></li>
             </ul>
           </div>
