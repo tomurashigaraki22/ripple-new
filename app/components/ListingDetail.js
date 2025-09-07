@@ -528,7 +528,7 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
 
       if (chainType === 'xrpl') {
         paymentResp = await sendXRPLXRPBPayment({account: xrpWalletAddress}, process.env.NEXT_PUBLIC_ESCROW_XRPL_WALLET, amount, "5852504200000000000000000000000000000000",
-        "rsEaYfqdZKNbD3SK55xzcjPm3nDrMj4aUT")
+        "rsEaYfqdZKNbD3SK55xzcjPm3nDrMj4aUT", selectedShippingCost)
       } else if (chainType === 'xrpl_evm' || chainType === "evm") {
 
         const NETWORK_CONFIG = {
@@ -587,7 +587,7 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
           tokenSymbol: symbol,
           network: "xrpl-evm-mainnet",
           rpcExplorerBase: explorerBase
-        })
+        }, selectedShippingCost)
       }
       else if (chainType === "ethereum") {
         const signer = await getSigner()
@@ -626,7 +626,7 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
           tokenSymbol: "ETH",
           network: "ethereum-mainnet",
           rpcExplorerBase: "https://etherscan.io/tx/"
-        })
+        }, selectedShippingCost)
       } else if (chainType === "solana") {
         // ✅ Native SOL payment
         paymentResp = await sendSolanaPayment(
@@ -637,7 +637,8 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
           },
           amount,
           connection,
-          "solana" // 👈 type is explicitly "solana"
+          "solana", // 👈 type is explicitly "solana"
+          selectedShippingCost
         );
       } else if (chainType === "xrpb-sol") {
         // ✅ XRBP-SOL SPL token payment
@@ -649,7 +650,8 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
           },
           amount,
           connection,
-          "xrpb-sol" // 👈 type is explicitly "xrpb-sol"
+          "xrpb-sol", // 👈 type is explicitly "xrpb-sol"
+          selectedShippingCost
         );
       } else if (chainType === "sui") {
         // ✅ Sui payment using suiPaymentHelper
@@ -669,6 +671,7 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
           recipient: process.env.NEXT_PUBLIC_SUI_ESCROW_ADDRESS || '0x...', // Add your Sui escrow address
           amount: amount,
           description: `Payment for ${listing.title}`,
+          shippingFee: selectedShippingCost,
           onProgress: (message) => {
             setPaymentResult({ message });
           },
@@ -686,6 +689,7 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
 
       // Create escrow
       setPaymentResult({ message: "Creating escrow..." })
+      const shippingFeeWithIncrement = selectedShippingCost * 1.015;
       const escrowResponse = await fetch('https://ripple-flask-server.onrender.com/escrows/create', {
         method: 'POST',
         headers: {
@@ -704,7 +708,12 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
           },
           listingId: listing.id,
           transactionHash: paymentResp.txHash || paymentResp.signature || paymentResp.transactionDigest,
-          paymentVerified: true
+          paymentVerified: true,
+          shippingInfo: {
+            originalCost: selectedShippingCost,
+            finalCost: shippingFeeWithIncrement,
+            gasFeeIncrement: 1.5
+          }
         })
       })
 

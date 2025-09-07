@@ -7,7 +7,7 @@ import { Input } from "../../components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
 import { Card, CardContent } from "../../components/ui/card"
 import { Badge } from "../../components/ui/badge"
-import { Search, MessageCircle, Package, CheckCircle } from "lucide-react"
+import { Search, MessageCircle, Package, CheckCircle, Truck } from "lucide-react"
 import { ShippingUpdateModal } from "../../components/ShippingUpdateModal"
 import { ChatModal } from "../../components/ChatModal"
 import { useAuth } from "../../contexts/AuthContext"
@@ -55,11 +55,12 @@ export default function OrdersPage() {
   }
 
   const getStatusBadge = (status) => {
+    console.log("SSS: ", status)
     const statusConfig = {
       completed: { label: "Completed", className: "bg-gray-600 text-white" },
       delivered: { label: "Delivered", className: "bg-green-600 text-white" },
       shipped: { label: "Shipped", className: "bg-blue-600 text-white" },
-      pending: { label: "Pending", className: "bg-yellow-600 text-black" },
+      pending: { label: "Pending", className: "bg-white text-black" },
     }
     const config = statusConfig[status] || statusConfig.pending
     return <Badge className={`${config.className} text-xs px-2 py-1`}>{config.label}</Badge>
@@ -84,6 +85,29 @@ export default function OrdersPage() {
     }
   }
 
+  // const handleCreateShipment = async (orderId) => {
+  //   try {
+  //     const res = await fetch(`https://ripple-flask-server.onrender.com/storefront/orders/${orderId}/create-shipment`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Authorization": `Bearer ${token}`,
+  //         "Content-Type": "application/json",
+  //       }
+  //     })
+  //     const data = await res.json()
+  //     if (res.ok) {
+  //       console.log("Shipment created successfully:", data)
+  //       fetchOrders() // Refresh orders to update status
+  //     } else {
+  //       console.error("Error creating shipment:", data.error)
+  //       alert(`Error creating shipment: ${data.error}`)
+  //     }
+  //   } catch (err) {
+  //     console.error("Error creating shipment:", err)
+  //     alert("Error creating shipment. Please try again.")
+  //   }
+  // }
+
   const handleChatWithBuyer = (order) => {
     setChatOrder(order)
     setShowChatModal(true)
@@ -96,6 +120,29 @@ export default function OrdersPage() {
     const buyerUser = (order.buyer_username || "").toLowerCase()
     return title.includes(q) || idText.includes(q) || buyerUser.includes(q)
   })
+
+  const handleCreateShipment = async (orderId) => {
+    try {
+      const res = await fetch(`https://ripple-flask-server.onrender.com/storefront/orders/${orderId}/create-shipment`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }
+      })
+      const data = await res.json()
+      if (res.ok) {
+        console.log("Shipment created successfully:", data)
+        fetchOrders() // Refresh orders to update status
+      } else {
+        console.error("Error creating shipment:", data.error)
+        alert(`Error creating shipment: ${data.error}`)
+      }
+    } catch (err) {
+      console.error("Error creating shipment:", err)
+      alert("Error creating shipment. Please try again.")
+    }
+  }
 
   return (
     <div className="flex min-h-screen bg-[#111111] overflow-hidden">
@@ -185,10 +232,21 @@ export default function OrdersPage() {
                           <div className="text-lg font-semibold text-green-400">
                             {(order.amount)?.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 3 })} XRPB
                           </div>
+                          {/* Shipping Fee Display */}
+                          {order.shipping_info && order.shipping_info.finalCost && (
+                            <div className="text-sm text-blue-400 mt-1">
+                              Shipping: ${order.shipping_info.finalCost.toFixed(2)} USD
+                            </div>
+                          )}
+                          {order.shipping_info && order.shipping_info.cost && !order.shipping_info.finalCost && (
+                            <div className="text-sm text-blue-400 mt-1">
+                              Shipping: ${order.shipping_info.cost.toFixed(2)} USD
+                            </div>
+                          )}
                         </div>
 
                         {/* Buttons: row on mobile, column on md+ */}
-                        <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto">
+<div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                           <Button
                             variant="outline"
                             size="sm"
@@ -198,6 +256,19 @@ export default function OrdersPage() {
                             <MessageCircle className="w-4 h-4 mr-2" />
                             Chat with Buyer
                           </Button>
+
+                          {/* Create Shipment Button for pending orders */}
+                          {order.status === "pending" || order.status === "escrow_funded" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCreateShipment(order.id)}
+                              className="w-full md:w-auto border-orange-600 text-orange-400 hover:bg-orange-600 hover:text-white"
+                            >
+                              <Truck className="w-4 h-4 mr-2" />
+                              Create Shipment
+                            </Button>
+                          )}
 
                           {order.status === "shipped" && (
                             <>
