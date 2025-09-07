@@ -140,7 +140,7 @@ const MetamaskProviderInner = ({ children }) => {
       // const chainIdHex = "0x15f900"; // XRPL-EVM Mainnet (1440000)
 
       if (switchChain) {
-        await switchChain({ chainId: parseInt(chainIdHex, 16) }); 
+        await switchChain({ chainId: 1440000 }); 
         console.log("Switched to XRPL-EVM Testnet via Wagmi");
         return;
       }
