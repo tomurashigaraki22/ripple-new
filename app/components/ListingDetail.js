@@ -613,7 +613,6 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
         )
               
         const balance = await provider.getBalance(await signer.getAddress())
-        alert(`Eth Balance: ${balance}`)
         if (balance < formattedAmount) {
           throw new Error("Insufficient ETH balance")
         }
