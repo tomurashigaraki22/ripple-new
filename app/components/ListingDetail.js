@@ -549,7 +549,7 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
           // ✅ If current chain doesn’t match → switch it
         if (chain?.id !== chainId) {
           await switchChain({ chainId });
-          throw new Error(`Switched to correct chain with id: ${chainId}. Please retry payment from ${chain?.id}.`);
+          throw new Error(`Ensure you've switched to XRPL-EVM Mainnet in MetaMask, reload and connect wallet`);
         }
         
         const signer = await getSigner()

@@ -220,7 +220,7 @@ useEffect(() => {
       // ✅ If current chain doesn’t match → switch it
       if (chain?.id !== chainId) {
         await switchChain({ chainId });
-        throw new Error(`Switched to correct chain: ${network}. Please retry payment.`);
+          throw new Error(`Ensure you've switched to the ${network} in MetaMask, reload and connect wallet`);
       }
   
       // ✅ Get signer
