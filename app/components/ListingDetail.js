@@ -62,7 +62,8 @@ export default function ListingDetail({ listing }) {
     isXRPLEVM,
     switchChain,
     isConnected,
-    getSigner
+    getSigner,
+    switchToEthereumMainnet
   } = useMetamask()
   const {
     publicKey,
@@ -598,13 +599,10 @@ const getPaymentAmount = (usdPrice, chainType, includeShipping = true) => {
         // ✅ Ensure we're on Ethereum mainnet (chainId = 1)
         if (network.chainId !== 1n) {
           try {
-            await window.ethereum.request({
-              method: "wallet_switchEthereumChain",
-              params: [{ chainId: "0x1" }], // hex chainId for mainnet
-            })
-            throw new Error("Switched to Ethereum Mainnet. Please try payment again.")
+            await switchToEthereumMainnet();
+            throw new Error("Switched to Ethereum Mainnet. Please try payment again.");
           } catch (switchError) {
-            throw new Error("Failed to switch to Ethereum Mainnet. Please switch manually in MetaMask.")
+            throw new Error("Failed to switch to Ethereum Mainnet. Please switch manually in MetaMask.");
           }
         }
       

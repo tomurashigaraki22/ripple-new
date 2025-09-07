@@ -7,6 +7,7 @@ import { metaMask, walletConnect } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAccount, useConnect, useDisconnect, useSwitchChain, useWalletClient } from 'wagmi';
 import { BrowserProvider, ethers } from 'ethers';
+import { mainnet } from 'wagmi/chains'; // Add this import
 
 const MetamaskContext = createContext(null);
 
@@ -61,25 +62,24 @@ const xrplEvmTestnet = defineChain({
   },
 });
 
-
 // Helper function to detect mobile
 const isMobile = () => {
   if (typeof window === 'undefined') return false;
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 };
 
-// Simplified Wagmi configuration - only injected connector
+// Updated Wagmi configuration - include Ethereum mainnet
 const config = createConfig({
-  chains: [xrplEvmTestnet, xrplEvmMainnet],
+  chains: [mainnet, xrplEvmTestnet, xrplEvmMainnet], // Add mainnet here
   connectors: [metaMask()],
   transports: {
-    [xrplEvmTestnet.id]: http("https://rpc.testnet.xrplevm.org"),  // ✅ explicit RPC
-    [xrplEvmMainnet.id]: http("https://rpc.xrplevm.org"),          // ✅ explicit RPC
+    [mainnet.id]: http(), // Add Ethereum mainnet transport
+    [xrplEvmTestnet.id]: http("https://rpc.testnet.xrplevm.org"),
+    [xrplEvmMainnet.id]: http("https://rpc.xrplevm.org"),
   },
 });
 
 const queryClient = new QueryClient();
-
 
 // Inner component that uses Wagmi hooks
 const MetamaskProviderInner = ({ children }) => {
@@ -89,134 +89,125 @@ const MetamaskProviderInner = ({ children }) => {
   const { switchChain } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
 
-  // Auto-switch to XRPL EVM when connected but on wrong network
+  // Auto-switch to XRPL EVM when connected but on wrong network (only for XRPL EVM payments)
   useEffect(() => {
-    if (isConnected && address && chain && chain.id !== 1440000) {
-      console.log('Connected to wrong network, switching to XRPL EVM testnet...: ', chain.id);
-      switchToXRPLEVM();
-    }
+    // Remove auto-switching logic as it interferes with Ethereum payments
+    // Users should manually select the correct network for their payment method
   }, [isConnected, address, chain]);
 
-const connectMetamaskWallet = async () => {
-  try {
-    const preferredConnector = connectors.find((c) => c.id === 'metaMaskSDK');
+  const connectMetamaskWallet = async () => {
+    try {
+      const preferredConnector = connectors.find((c) => c.id === 'metaMaskSDK');
 
-    if (!preferredConnector) {
-      throw new Error('No suitable connector found');
+      if (!preferredConnector) {
+        throw new Error('No suitable connector found');
+      }
+
+      connect({ connector: preferredConnector });
+    } catch (error) {
+      console.error("Connection error:", error);
+      alert(`Failed to connect wallet: ${error.message || error}`);
+      throw error;
     }
+  };
 
-    connect({ connector: preferredConnector });
-  } catch (error) {
-    console.error("Connection error:", error);
-    alert(`Failed to connect wallet: ${error.message || error}`);
-    throw error;
-  }
-};
+  // Add function to switch to Ethereum mainnet
+  const switchToEthereumMainnet = async () => {
+    try {
+      if (switchChain) {
+        await switchChain({ chainId: 1 }); // Ethereum mainnet chain ID
+        console.log("Switched to Ethereum Mainnet via Wagmi");
+        return;
+      }
 
-
-const switchToXRPLEVM = async () => {
-  try {
-    const chainIdHex = "0x161c28"; // XRPL-EVM Testnet (1449000)
-    // const chainIdHex = "0x15f900"; // XRPL-EVM Mainnet (1440000)
-
-    if (switchChain) {
-      await switchChain({ chainId: parseInt(chainIdHex, 16) }); 
-      console.log("Switched to XRPL-EVM Testnet via Wagmi");
-      return;
-    }
-
-    if (typeof window !== "undefined" && window.ethereum) {
-      try {
+      // Fallback to direct MetaMask call
+      if (typeof window !== "undefined" && window.ethereum) {
         await window.ethereum.request({
           method: "wallet_switchEthereumChain",
-          params: [{ chainId: chainIdHex }],
+          params: [{ chainId: "0x1" }], // Ethereum mainnet
         });
-        console.log("Successfully switched to XRPL-EVM Testnet");
-      } catch (switchError) {
-        if (switchError.code === 4902) {
+        console.log("Successfully switched to Ethereum Mainnet");
+      }
+    } catch (error) {
+      console.error("Failed to switch to Ethereum Mainnet:", error);
+      throw new Error("Failed to switch to Ethereum Mainnet. Please switch manually in MetaMask.");
+    }
+  };
+
+  const switchToXRPLEVM = async () => {
+    try {
+      const chainIdHex = "0x161c28"; // XRPL-EVM Testnet (1449000)
+      // const chainIdHex = "0x15f900"; // XRPL-EVM Mainnet (1440000)
+
+      if (switchChain) {
+        await switchChain({ chainId: parseInt(chainIdHex, 16) }); 
+        console.log("Switched to XRPL-EVM Testnet via Wagmi");
+        return;
+      }
+
+      if (typeof window !== "undefined" && window.ethereum) {
+        try {
           await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [{
-              chainId: chainIdHex,
-              chainName: "XRPL EVM Sidechain Testnet",
-              nativeCurrency: {
-                name: "XRP",
-                symbol: "XRP",
-                decimals: 18,
-              },
-              rpcUrls: ["https://rpc.testnet.xrplevm.org"],  // ✅ FIXED
-              blockExplorerUrls: ["https://explorer.testnet.xrplevm.org"],
-            }],
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: chainIdHex }],
           });
-          console.log("Added + switched to XRPL-EVM Testnet");
-        } else {
-          throw switchError;
+          console.log("Successfully switched to XRPL-EVM Testnet");
+        } catch (switchError) {
+          if (switchError.code === 4902) {
+            await window.ethereum.request({
+              method: "wallet_addEthereumChain",
+              params: [{
+                chainId: chainIdHex,
+                chainName: "XRPL EVM Sidechain Testnet",
+                nativeCurrency: {
+                  name: "XRP",
+                  symbol: "XRP",
+                  decimals: 18,
+                },
+                rpcUrls: ["https://rpc.testnet.xrplevm.org"],
+                blockExplorerUrls: ["https://explorer.testnet.xrplevm.org"],
+              }],
+            });
+            console.log("Added + switched to XRPL-EVM Testnet");
+          } else {
+            throw switchError;
+          }
         }
       }
+    } catch (error) {
+      console.error("Failed to switch:", error);
+      alert("Please switch manually in your wallet.");
     }
-  } catch (error) {
-    console.error("Failed to switch:", error);
-    alert("Please switch manually in your wallet.");
-  }
-};
-
+  };
 
   const disconnectMetamaskWallet = () => {
     disconnect();
   };
 
   // Create ethers signer from wallet client
+  const getSigner = async () => {
+    try {
+      if (walletClient) {
+        // Convert viem WalletClient -> ethers provider
+        const provider = new ethers.BrowserProvider(walletClient.transport);
+        const signer = await provider.getSigner();
+        console.log("Signer created from walletClient");
+        return signer;
+      }
 
-const getSigner = async () => {
-  // First check if we have a wallet client from Wagmi
-  if (!walletClient) {
-    console.log('No wallet client from Wagmi, checking direct connection...');
-    
-    // Fallback: Check if MetaMask is available directly
-    if (typeof window !== 'undefined' && window.ethereum) {
-      try {
-        // Request account access if needed
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length === 0) {
-          // Try to connect if no accounts
-          await window.ethereum.request({ method: 'eth_requestAccounts' });
-        }
-        
-        // Create provider directly from window.ethereum
+      if (typeof window !== "undefined" && window.ethereum) {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
-        console.log('Created signer via direct ethereum provider');
+        console.log("Signer created from window.ethereum");
         return signer;
-      } catch (error) {
-        console.error('Direct ethereum provider failed:', error);
       }
-    }
-    
-    throw new Error('Wallet not connected - please connect your wallet first');
-  }
 
-  try {
-    // Convert viem WalletClient to ethers provider
-    const provider = new ethers.BrowserProvider(walletClient);
-    const signer = await provider.getSigner();
-    return signer;
-  } catch (error) {
-    console.error('Failed to create signer from wallet client:', error);
-    
-    // Fallback to direct ethereum provider
-    if (typeof window !== 'undefined' && window.ethereum) {
-      try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        return signer;
-      } catch (fallbackError) {
-        console.error('Fallback provider also failed:', fallbackError);
-      }
+      throw new Error("Wallet not connected");
+    } catch (err) {
+      console.error("getSigner failed:", err);
+      throw err;
     }
-    
-    throw new Error('Unable to create signer - wallet connection issue');
-  }
-};
+  };
 
   const value = {
     metamaskWalletAddress: address,
@@ -225,9 +216,11 @@ const getSigner = async () => {
     connecting: isConnecting,
     currentChain: chain,
     isXRPLEVM: chain?.id === 1440000 || chain?.id === 1449000,
+    isEthereumMainnet: chain?.id === 1,
     connectMetamaskWallet,
     disconnectMetamaskWallet,
     switchToXRPLEVM,
+    switchToEthereumMainnet, // Add this new function
     getSigner,
     switchChain,
     walletClient,
