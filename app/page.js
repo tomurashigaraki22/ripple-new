@@ -10,7 +10,7 @@ export default function Home() {
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4 py-12 mb-8">
         <h1 className="font-[var(--font-space-grotesk)] text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold bg-gradient-to-r from-[#39FF14] to-[#00ff99] bg-clip-text text-transparent mb-6">
-          Welcome To RippleBids Marketplace
+          Welcome To RippleBids Marketplace Test
         </h1>
 
         <p className="text-base sm:text-lg lg:text-xl mb-8 max-w-2xl text-gray-300">
