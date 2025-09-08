@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Store,
   LayoutDashboard,
@@ -17,6 +17,7 @@ import {
   Menu,
   X,
 } from "lucide-react"
+import { useAuth } from "../contexts/AuthContext"
 
 const sidebarItems = [
   { name: "Dashboard", href: "/storefront/dashboard", icon: LayoutDashboard },
@@ -32,6 +33,11 @@ const sidebarItems = [
 export default function StorefrontSidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
+  const {token, user} = useAuth()
+
+  useEffect(() => {
+    console.log("User: ", user)
+  }, [])
 
   return (
     <>
@@ -95,8 +101,8 @@ export default function StorefrontSidebar() {
               <User className="w-4 h-4 text-black" />
             </div>
             <div>
-              <p className="text-white text-sm font-medium">devtomiwa9</p>
-              <p className="text-green-400 text-xs">Pro Member</p>
+              <p className="text-white text-sm font-medium">{user?.username || "User"}</p>
+              <p className="text-green-400 text-xs">{user?.membershipTier} Member</p>
             </div>
           </div>
 

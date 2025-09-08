@@ -11,9 +11,9 @@ import { useAuth } from "../../contexts/AuthContext"
 
 export default function StorefrontDashboard() {
   const router = useRouter()
-  const { token } = useAuth()
+  const { token, user } = useAuth()
 
-  const [publicUrl] = useState("https://ripplebids.com/storefront/public/8966824e-28e4-4829-afb6-663ac276b7ad")
+  const [publicUrl, setPublicUrl] = useState("")
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
   const [recentListings, setRecentListings] = useState([])
@@ -21,6 +21,14 @@ export default function StorefrontDashboard() {
 
   const formatNumber = (n) => Number(n || 0).toLocaleString()
   const formatAmount = (n) => `${formatNumber(n)} XRPB`
+
+useEffect(() => {
+    if (typeof window !== "undefined" && user?.userId) {
+      const baseUrl = window.location.origin;
+      setPublicUrl(`${baseUrl}/storefront/public/${user.userId}`);
+      console.log("Base url: ", baseUrl)
+    }
+  }, [user?.userId]);
 
   const fetchDashboardData = async () => {
     try {
@@ -68,7 +76,7 @@ export default function StorefrontDashboard() {
     fetchDashboardData()
   }, [token])
 
-  const copyToClipboard = () => navigator.clipboard.writeText(publicUrl)
+  const copyToClipboard = () => navigator?.clipboard?.writeText(publicUrl)
 
   const getStatusColor = (status) => {
     switch ((status || "").toLowerCase()) {
